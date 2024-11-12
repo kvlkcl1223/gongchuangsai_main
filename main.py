@@ -12,32 +12,6 @@ import numpy as np
 
 
 
-#
-# import Jetson.GPIO as GPIO
-#
-# def read_pin_with_debounce(pin, debounce_time=0.02):
-#     """
-#     读取指定引脚的高低电平，加入软件消抖。
-#
-#     :param pin: GPIO 引脚编号
-#     :param debounce_time: 消抖时间（秒）
-#     :return: 引脚状态（高电平 True，低电平 False）
-#     """
-#     GPIO.setmode(GPIO.BOARD)  # 使用 BOARD 编号方式
-#     GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # 设置引脚为输入，并启用上拉电阻
-#
-#     last_state = GPIO.input(pin)
-#     time.sleep(debounce_time)  # 等待一段时间以避免抖动
-#
-#     while True:
-#         current_state = GPIO.input(pin)
-#         if current_state != last_state:
-#             time.sleep(debounce_time)  # 等待消抖时间
-#             current_state = GPIO.input(pin)  # 重新读取状态
-#             if current_state != last_state:  # 状态变化且消抖后确认
-#                 last_state = current_state
-#                 return current_state == GPIO.HIGH  # 返回高电平状态
-#
 class YOLOv8Seg:
     """YOLOv8 segmentation model."""
 
@@ -58,7 +32,9 @@ class YOLOv8Seg:
 
         # Numpy dtype: support both FP32 and FP16 onnx model
         self.ndtype = np.half if self.session.get_inputs()[0].type == "tensor(float16)" else np.single
-
+        # Create color palette
+        self.classes = ["background", "dianchi", "jiaonang", "luobo", "shitou", "shuiping", "taoci", "xiaotudou",
+                        "yaobaozhuang", "yilaguan"]
         # Get model width and height(YOLOv8-seg only has one input)
         self.model_height, self.model_width = [x.shape for x in self.session.get_inputs()][0][-2:]
 
@@ -73,6 +49,7 @@ class YOLOv8Seg:
             nm (int): the number of masks.
 
         Returns:
+             # 类别 置信度 掩码 角度 中心 图像
             boxes (List): list of bounding boxes.
             segments (List): list of segments.
             masks (np.ndarray): [N, H, W], output masks.
@@ -84,7 +61,7 @@ class YOLOv8Seg:
         preds = self.session.run(None, {self.session.get_inputs()[0].name: im})
 
         # Post-process
-        cls_, confs, masks, angles, centers = self.postprocess(
+        cls_, confs, masks, angles, centers,image = self.postprocess(
             preds,
             im0=im0,
             ratio=ratio,
@@ -95,7 +72,7 @@ class YOLOv8Seg:
             nm=nm,
         )
 
-        return cls_, confs, masks, angles, centers
+        return cls_, confs, masks, angles, centers, image  # 类别 置信度 掩码 角度 中心 图像
 
     def preprocess(self, img):
         """
@@ -177,14 +154,46 @@ class YOLOv8Seg:
 
             # Process masks
             masks = self.process_mask(protos[0], x[:, 6:], x[:, :4], im0.shape)
-            centers = (int((x[..., 0] + x[..., 1]) / 2), int((x[..., 2] + x[..., 3]) / 2))
-            print(centers)
+            x_centers = ((x[..., 0] + x[..., 1]) / 2).astype(int)
+            y_centers = ((x[..., 2] + x[..., 3]) / 2).astype(int)
+            centers = np.stack((x_centers, y_centers), axis=-1)
+
             # Masks -> Segments(contours)
             segments, angles = self.masks2segments(masks)
-            return x[..., 5], x[..., 4], masks, angles, centers  # cls, conf, segments, masks
-        else:
-            return [], [], [], [], []
+            bboxes = x[..., :6]
+            im_canvas = im0.copy()
+            fixed_color = (0, 0, 255)  # Red color in BGR format
+            for (*box, conf, cls_), segment in zip(bboxes, segments):
+                # 使用固定颜色替换 self.color_palette(int(cls_), bgr=True)
+                cv2.polylines(im0, np.int32([segment]), True, (255, 255, 255), 2)  # white borderline
+                cv2.fillPoly(im_canvas, np.int32([segment]), fixed_color)
 
+                cv2.rectangle(
+                    im0,
+                    (int(box[0]), int(box[1])),
+                    (int(box[2]), int(box[3])),
+                    fixed_color,
+                    1,
+                    cv2.LINE_AA,
+                )
+
+                cv2.putText(
+                    im0,
+                    f"{self.classes[int(cls_)]}: {conf:.3f}",
+                    (int(box[0]), int(box[1] - 9)),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    fixed_color,
+                    2,
+                    cv2.LINE_AA,
+                )
+
+            # Mix image
+            im0 = cv2.addWeighted(im_canvas, 0.3, im0, 0.7, 0)
+
+            return x[..., 5], x[..., 4], masks, angles, centers, im0
+        else:
+            return [], [], [], [], [], im0
     @staticmethod
     def masks2segments(masks):
         """
@@ -222,7 +231,7 @@ class YOLOv8Seg:
             angle = np.degrees(np.arctan(slope)) if slope != float('inf') else 90
             angles.append(angle)
             segments.append(c.astype("float32"))
-        return segments,angles
+        return segments, angles
 
     @staticmethod
     def crop_mask(masks, boxes):
@@ -572,7 +581,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
         frame, ret = cap.read()
         # 裁剪图像
         frame = frame[:, :]
-        cls_, confs, _, angles, centers = model(frame, conf_threshold=0.7, iou_threshold=0.5)
+        cls_, confs, _, angles, centers, image = model(frame, conf_threshold=0.7, iou_threshold=0.5)
         # 先用夹子丢需要压缩的垃圾，再用夹子丢其他，最后直接倾倒
         if cls_ is not None:
             # 先清队列
