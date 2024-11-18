@@ -426,6 +426,10 @@ while True:
                             print(f"接收到的数据: {message}")
                             if message == "detect":  # 替换为实际的条件
                                 print("已发现东西落下。")
+                                start_time = time.time()
+                                while time.time() - start_time <0.6:
+                                    ret, frame = cap.read()
+                                    time.sleep(0.1)
                                 count_detect = 0
                                 while count_detect < 5:
                                     ret, frame = cap.read()
