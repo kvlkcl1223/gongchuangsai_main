@@ -38,6 +38,10 @@ def transform_point_to_rotated_coords_clockwise(point, angle=-45.0):
     x_new = x * math.cos(radians) - y * math.sin(radians)
     y_new = x * math.sin(radians) + y * math.cos(radians)
 
+    # 限制小数点位数
+    x_new = round(x_new, 2)
+    y_new = round(y_new, 2)
+
     return (x_new, y_new)
 
 
@@ -417,10 +421,10 @@ while True:
             try:
                 received_data = ser.readline().decode('ascii').strip()
                 buffer += received_data  # 将接收到的数据添加到缓冲区
-
+                print(received_data)
                 # 假设数据以特定标识符结束（例如"\n"）
-                if '\n' in buffer:
-                    messages = buffer.split('\n')  # 根据标识符分割消息
+                if '!' in buffer:
+                    messages = buffer.split('!')  # 根据标识符分割消息
                     for message in messages:
                         if message:  # 确保消息不为空
                             print(f"接收到的数据: {message}")
@@ -444,7 +448,7 @@ while True:
                                         break
                                     print(cls_, confs, angles, centers)
                                     print(time.time() - start_time)
-                                    count_detect+= 1
+                                    count_detect += 1
 
                     buffer = ""  # 清空缓冲区
             except UnicodeDecodeError:
