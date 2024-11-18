@@ -547,6 +547,36 @@ def display_process(queue_display,queue_display_ser):
     check_queue()  # 启动检查队列的函数
     root.mainloop()
 
+
+def extract_region(image, points, output_size=(640, 640)):
+    """
+    从给定的图像中提取四边形区域，并将其调整为指定的输出大小。
+
+    参数:
+    - image: 要提取的图像。
+    - points: 四个坐标点 [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]，表示四边形的四个角。
+    - output_size: 提取的区域图像的输出大小 (width, height)，默认为 (640, 640)。
+
+    返回:
+    - 提取的区域图像，尺寸为指定的 output_size。
+    """
+    # 定义目标图像的四个角点，大小为指定的输出大小
+    dst_points = np.array([
+        [0, 0],
+        [output_size[0] - 1, 0],
+        [output_size[0] - 1, output_size[1] - 1],
+        [0, output_size[1] - 1]
+    ], dtype="float32")
+
+    # 计算透视变换矩阵
+    M = cv2.getPerspectiveTransform(np.array(points, dtype="float32"), dst_points)
+
+    # 应用透视变换，并调整为指定的输出大小
+    extracted_region = cv2.warpPerspective(image, M, output_size)
+
+    return extracted_region
+
+
 def yolo_process(queue_display,queue_receive, queue_transmit):
 
 
@@ -565,7 +595,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     cap.set(cv2.CAP_PROP_FOURCC, fourcc)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 960)
 
     #     0: background
     #     1: dianchi
@@ -580,7 +610,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
     while True:
         frame, ret = cap.read()
         # 裁剪图像
-        frame = frame[:, :]
+        frame = extract_region(frame, points=[(446, 22), (824, 28), (818, 406), (446, 400)])
         cls_, confs, _, angles, centers, image = model(frame, conf_threshold=0.7, iou_threshold=0.5)
         # 先用夹子丢需要压缩的垃圾，再用夹子丢其他，最后直接倾倒
         if cls_ is not None:
@@ -641,7 +671,7 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                 print("serial_cnt=", serial_cnt)
                 break
     # 创建串口对象
-    port = '/dev/ttyUSB0'  # 替换为你的串口号
+    port = '/dev/ttyTHS1'  # 替换为你的串口号
     baudrate = 115200
     timeout = 1
     ser = serial.Serial(port, baudrate, timeout=timeout)
@@ -651,21 +681,25 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
     while True:
         if ser.in_waiting > 0:
             # 读取一行数据并解码
-            received_data = ser.readline().decode('ascii').strip()
-            buffer += received_data  # 将接收到的数据添加到缓冲区
+            try:
+                received_data = ser.readline().decode('ascii').strip()
+                buffer += received_data  # 将接收到的数据添加到缓冲区
 
-            # 假设数据以特定标识符结束（例如"\n"）
-            if '\n' in buffer:
-                messages = buffer.split('\n')  # 根据标识符分割消息
-                for message in messages:
-                    if message:  # 确保消息不为空
-                        print(f"接收到的数据: {message}")
-                        if message == "some_condition":  # 替换为实际的条件
-                            print("满足条件，执行某些操作。")
-                            queue_receive.put(message)
-                        elif message == "full":
-                            queue_display_ser.put("full=!")
-                buffer = ""  # 清空缓冲区
+                # 假设数据以特定标识符结束（例如"\n"）
+                if '\n' in buffer:
+                    messages = buffer.split('\n')  # 根据标识符分割消息
+                    for message in messages:
+                        if message:  # 确保消息不为空
+                            print(f"接收到的数据: {message}")
+                            if message == "some_condition":  # 替换为实际的条件
+                                print("满足条件，执行某些操作。")
+                                queue_receive.put(message)
+                            elif message == "full":
+                                queue_display_ser.put("full=!")
+                    buffer = ""  # 清空缓冲区
+            except UnicodeDecodeError:
+                # 如果解码失败，处理异常
+                print("Decoding error: received data contains invalid ASCII characters.")
 
         if not queue_transmit.empty():
             data_to_send = queue_transmit.get()

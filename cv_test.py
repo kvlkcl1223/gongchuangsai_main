@@ -310,7 +310,33 @@ class YOLOv8Seg:
         return masks
 
 
+def extract_region(image, points, output_size=(640, 640)):
+    """
+    从给定的图像中提取四边形区域，并将其调整为指定的输出大小。
 
+    参数:
+    - image: 要提取的图像。
+    - points: 四个坐标点 [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]，表示四边形的四个角。
+    - output_size: 提取的区域图像的输出大小 (width, height)，默认为 (640, 640)。
+
+    返回:
+    - 提取的区域图像，尺寸为指定的 output_size。
+    """
+    # 定义目标图像的四个角点，大小为指定的输出大小
+    dst_points = np.array([
+        [0, 0],
+        [output_size[0] - 1, 0],
+        [output_size[0] - 1, output_size[1] - 1],
+        [0, output_size[1] - 1]
+    ], dtype="float32")
+
+    # 计算透视变换矩阵
+    M = cv2.getPerspectiveTransform(np.array(points, dtype="float32"), dst_points)
+
+    # 应用透视变换，并调整为指定的输出大小
+    extracted_region = cv2.warpPerspective(image, M, output_size)
+
+    return extracted_region
 
 def process_string(input_string):
     # 检查帧头是否符合 "帧头=xx！" 的格式
@@ -334,11 +360,11 @@ def process_string(input_string):
 
 model_path = "best.onnx"
 model = YOLOv8Seg(model_path)
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
 fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 cap.set(cv2.CAP_PROP_FOURCC, fourcc)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 960)
 
 #     0: background
 #     1: dianchi
@@ -350,12 +376,46 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 #     7: xiaotudou
 #     8: yaobaozhuang
 #     9: yilaguan
+port = '/dev/ttyTHS1'  # 替换为你的串口号
+baudrate = 115200
+timeout = 1
+ser = serial.Serial(port, baudrate, timeout=timeout)
+buffer =""
 while True:
-    ret,frame = cap.read()
-    # 裁剪图像
-    start_time = time.time()
-    cls_, confs, _, angles, centers, image = model(frame, conf_threshold=0.7, iou_threshold=0.5)
-    print(cls_, confs, angles, centers)
-    print(time.time() - start_time)
-    cv2.imshow('image', image)
-    cv2.waitKey(1)
+    if ser.in_waiting > 0:
+            try:
+                received_data = ser.readline().decode('ascii').strip()
+                buffer += received_data  # 将接收到的数据添加到缓冲区
+
+                # 假设数据以特定标识符结束（例如"\n"）
+                if '\n' in buffer:
+                    messages = buffer.split('\n')  # 根据标识符分割消息
+                    for message in messages:
+                        if message:  # 确保消息不为空
+                            print(f"接收到的数据: {message}")
+                            if message == "detect":  # 替换为实际的条件
+                                print("已发现东西落下。")
+                                count_detect = 0
+                                while count_detect < 5:
+                                    ret, frame = cap.read()
+                                    # 裁剪图像
+                                    start_time = time.time()
+                                    frame = extract_region(frame, points=[(446, 22), (824, 28), (818, 406), (446, 400)])
+                                    cls_, confs, _, angles, centers, image = model(frame, conf_threshold=0.7 , iou_threshold=0.5)
+                                    if(cls_!= None):
+                                        data_to_send = "Tar=q1!"
+                                        ser.write(data_to_send.encode('ascii'))
+                                        break
+                                    print(cls_, confs, angles, centers)
+                                    print(time.time() - start_time)
+                                    count_detect+= 1
+
+                    buffer = ""  # 清空缓冲区
+            except UnicodeDecodeError:
+                # 如果解码失败，处理异常
+                print("Decoding error: received data contains invalid ASCII characters.")
+
+
+
+        # cv2.imshow('image', image)
+        # cv2.waitKey(1)
