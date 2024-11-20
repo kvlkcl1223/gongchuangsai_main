@@ -9,7 +9,7 @@ import serial
 import re
 import onnxruntime as ort
 import numpy as np
-
+import math
 
 
 class YOLOv8Seg:
@@ -37,7 +37,21 @@ class YOLOv8Seg:
                         "yaobaozhuang", "yilaguan"]
         # Get model width and height(YOLOv8-seg only has one input)
         self.model_height, self.model_width = [x.shape for x in self.session.get_inputs()][0][-2:]
+        # 为每个类别定义面积范围
+        self.category_area_rules = {
+            0: (0, 0),  # 类别 0 的面积范围在 500-2000 之间
+            1: (0.01, 0.4),  # 类别 1 的面积范围在 100-1500 之间
+            2: (0.001, 0.1),  # 类别 2 的面积范围在 300-2500 之间
+            3: (0.01, 0.3),
+            4: (0.001, 0.3),
+            5: (0.01, 0.6),
+            6: (0.01, 0.3),
+            7: (0.001, 0.2),
+            8: (0.01, 0.5),
+            9: (0.01, 0.5),
 
+        }
+        self.total_image_area = 640*640
     def __call__(self, im0, conf_threshold=0.4, iou_threshold=0.45, nm=32):
         """
         The whole pipeline: pre-process -> inference -> post-process.
@@ -61,7 +75,7 @@ class YOLOv8Seg:
         preds = self.session.run(None, {self.session.get_inputs()[0].name: im})
 
         # Post-process
-        cls_, confs, masks, angles, centers,image = self.postprocess(
+        cls_, confs, masks, angles, centers,image,areas = self.postprocess(
             preds,
             im0=im0,
             ratio=ratio,
@@ -72,7 +86,7 @@ class YOLOv8Seg:
             nm=nm,
         )
 
-        return cls_, confs, masks, angles, centers, image  # 类别 置信度 掩码 角度 中心 图像
+        return cls_, confs, masks, angles, centers, image, areas  # 类别 置信度 掩码 角度 中心 图像 面积比例
 
     def preprocess(self, img):
         """
@@ -105,7 +119,7 @@ class YOLOv8Seg:
         img_process = img[None] if len(img.shape) == 3 else img
         return img_process, ratio, (pad_w, pad_h)
 
-    def postprocess(self, preds, im0, ratio, pad_w, pad_h, conf_threshold, iou_threshold, nm=32):
+    def postprocess(self, preds, im0, ratio, pad_w, pad_h, conf_threshold, iou_threshold, nm=32,area_threshold=200000):
         """
         Post-process the prediction.
 
@@ -154,46 +168,64 @@ class YOLOv8Seg:
 
             # Process masks
             masks = self.process_mask(protos[0], x[:, 6:], x[:, :4], im0.shape)
-            x_centers = ((x[..., 0] + x[..., 1]) / 2).astype(int)
-            y_centers = ((x[..., 2] + x[..., 3]) / 2).astype(int)
-            centers = np.stack((x_centers, y_centers), axis=-1)
+            # Compute mask areas and filter
+            areas = np.sum(masks, axis=(1, 2))  # Calculate areas (number of True values per mask)
+            # 标准化面积为占总图片面积的比例
+            areas = areas / self.total_image_area
+            valid_indices = np.where(areas <= area_threshold)[0]  # Find indices of masks that meet the area condition
+            print("面积比例", areas)
+            # 筛选合理的切片
+            valid_indices = []
+            for i, (area, cls) in enumerate(zip(areas, x[:, 5].astype(int))):  # x[:, 5] 假设是 cls_
+                if cls in self.category_area_rules:
+                    min_area, max_area = self.category_area_rules[cls]
+                    if min_area <= area <= max_area:
+                        valid_indices.append(i)
+            if (len(valid_indices) == 0):
+                print("面积筛选过后，已无合理值")
+                return [], [], [], [], [], im0, []
+            else:
+                x_centers = ((x[valid_indices, 0] + x[valid_indices, 2]) / 2).astype(int)
+                y_centers = ((x[valid_indices, 1] + x[valid_indices, 3]) / 2).astype(int)
+                centers = np.stack((x_centers, y_centers), axis=-1)
 
-            # Masks -> Segments(contours)
-            segments, angles = self.masks2segments(masks)
-            bboxes = x[..., :6]
-            im_canvas = im0.copy()
-            fixed_color = (0, 0, 255)  # Red color in BGR format
-            for (*box, conf, cls_), segment in zip(bboxes, segments):
-                # 使用固定颜色替换 self.color_palette(int(cls_), bgr=True)
-                cv2.polylines(im0, np.int32([segment]), True, (255, 255, 255), 2)  # white borderline
-                cv2.fillPoly(im_canvas, np.int32([segment]), fixed_color)
+                # Masks -> Segments(contours)
+                segments, angles = self.masks2segments(masks[valid_indices])
+                bboxes = x[valid_indices, :6]
+                im_canvas = im0.copy()
+                fixed_color = (0, 0, 255)  # Red color in BGR format
+                for (*box, conf, cls_), segment in zip(bboxes, segments):
+                    # 使用固定颜色替换 self.color_palette(int(cls_), bgr=True)
+                    cv2.polylines(im0, np.int32([segment]), True, (255, 255, 255), 2)  # white borderline
+                    cv2.fillPoly(im_canvas, np.int32([segment]), fixed_color)
 
-                cv2.rectangle(
-                    im0,
-                    (int(box[0]), int(box[1])),
-                    (int(box[2]), int(box[3])),
-                    fixed_color,
-                    1,
-                    cv2.LINE_AA,
-                )
+                    cv2.rectangle(
+                        im0,
+                        (int(box[0]), int(box[1])),
+                        (int(box[2]), int(box[3])),
+                        fixed_color,
+                        1,
+                        cv2.LINE_AA,
+                    )
 
-                cv2.putText(
-                    im0,
-                    f"{self.classes[int(cls_)]}: {conf:.3f}",
-                    (int(box[0]), int(box[1] - 9)),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.7,
-                    fixed_color,
-                    2,
-                    cv2.LINE_AA,
-                )
+                    cv2.putText(
+                        im0,
+                        f"{self.classes[int(cls_)]}: {conf:.3f}",
+                        (int(box[0]), int(box[1] - 9)),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.7,
+                        fixed_color,
+                        2,
+                        cv2.LINE_AA,
+                    )
 
-            # Mix image
-            im0 = cv2.addWeighted(im_canvas, 0.3, im0, 0.7, 0)
+                # Mix image
+                im0 = cv2.addWeighted(im_canvas, 0.3, im0, 0.7, 0)
+                cls_ = np.array(x[valid_indices, 5], dtype=int).tolist()
+                return cls_, x[valid_indices, 4], masks[valid_indices], angles, centers, im0, areas[valid_indices]
 
-            return x[..., 5], x[..., 4], masks, angles, centers, im0
         else:
-            return [], [], [], [], [], im0
+            return [], [], [], [], [], im0, []
     @staticmethod
     def masks2segments(masks):
         """
@@ -482,8 +514,10 @@ def display_process(queue_display,queue_display_ser):
     root = tk.Tk()
     app = SimpleApp(root)
     # 定期检查队列消息
+    # 逻辑是 接收到垃圾种类存到last_frame_header再次收到success则把这个种类的垃圾加1
     def check_queue():
         try:
+            # 来自main的命令
             message = queue_display.get_nowait()  # 尝试获取消息
             # app.update_label(message)  # 更新标签
             app.flag_start = 0
@@ -492,7 +526,25 @@ def display_process(queue_display,queue_display_ser):
             if header_match:
                 frame_header = header_match.group(1).strip()
                 data = header_match.group(2).strip()
-                if frame_header == "ok":
+                if frame_header == "fail":
+                    app.state = "fail"
+                else:
+                    app.index += 1
+                    app.name = frame_header
+                    app.state = "classifying"
+                    app.last_frame_header = frame_header
+                app.update_display()
+
+            # 来自串口的命令
+            # 满载以及动作完成直接由串口发送
+            message = queue_display_ser.get_nowait()  # 尝试获取消息
+            header_match = re.match(r'^(.*?)=(.*?)!$', message)
+            if header_match:
+                frame_header = header_match.group(1).strip()
+                data = header_match.group(2).strip()
+                if frame_header == "full":
+                    app.full_display()
+                elif frame_header == "success":
                     app.state = "success"
                     if app.last_frame_header == "harmful":
                         app.quantity_harmful += 1
@@ -502,20 +554,8 @@ def display_process(queue_display,queue_display_ser):
                         app.quantity_kitchen += 1
                     elif app.last_frame_header == "other":
                         app.quantity_other += 1
-                else:
-                    app.index += 1
-                    app.name = frame_header
-                    app.state = "classifying"
-                    app.last_frame_header = frame_header
                 app.update_display()
 
-            message = queue_display_ser.get_nowait()  # 尝试获取消息
-            header_match = re.match(r'^(.*?)=(.*?)!$', message)
-            if header_match:
-                frame_header = header_match.group(1).strip()
-                data = header_match.group(2).strip()
-                if frame_header == "full":
-                    app.full_display()
                 # # 处理不同帧头的操作
                 # if frame_header == "garbage":
                 #     app.init_parameter()
@@ -576,26 +616,65 @@ def extract_region(image, points, output_size=(640, 640)):
 
     return extracted_region
 
+def transform_point_to_rotated_coords_clockwise(point, angle=-45.0):
+    """
+    计算坐标系顺时针旋转指定角度后，点在新坐标系中的位置。
+
+    参数:
+    - point (tuple): 原始坐标点 (x, y)。
+    - angle (float): 坐标系顺时针旋转的角度，单位为度。
+
+    返回:
+    - tuple: 点在新坐标系中的坐标 (x', y')。
+    """
+    # 转换角度为弧度
+    radians = math.radians(angle)
+
+    # 提取点的坐标
+    x, y = point
+
+    # 使用旋转公式，方向改变
+    x_new = x * math.cos(radians) + y * math.sin(radians)
+    y_new = -x * math.sin(radians) + y * math.cos(radians)
+
+    # 限制小数点位数
+    x_new = round(x_new, 2)
+    y_new = round(y_new, 2)
+
+    return (x_new, y_new)
 
 def yolo_process(queue_display,queue_receive, queue_transmit):
 
-
-    while True:
-        # 该部分处理为进行视觉识别算法，得到目标，将信息显示在屏幕上
-        print("运行 YOLO 算法...")
-        queue_display.put('harmful=!')
-        #queue.put("full=!")
-        time.sleep(3)  # 模拟 YOLO 处理
-        queue_display.put('ok=!')
-        # queue.put('garbage=i2+q2+i3+q19+i1+q7!')
+    # time.sleep(10)
+    # while True:
+    #     # 该部分处理为进行视觉识别算法，得到目标，将信息显示在屏幕上
+    #     print("运行 YOLO 算法...")
+    #     queue_display.put('harmful=!')
+    #     #queue.put("full=!")
+    #     time.sleep(3)  # 模拟 YOLO 处理
+    #     # queue_display.put('success=!')
+    #     # time.sleep(3)
+    #     # queue.put('garbage=i2+q2+i3+q19+i1+q7!')
 
     model_path = "best.onnx"
     model = YOLOv8Seg(model_path)
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+    cap = cv2.VideoCapture(0)
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     cap.set(cv2.CAP_PROP_FOURCC, fourcc)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 960)
+    # 角度偏差量
+    angle_error = 0
+    # 垃圾轮数计数
+    index_garbage =0
+    # 预热模型
+    start_time = time.time()
+    while time.time() - start_time < 0.6:
+        ret, frame = cap.read()
+        cls_, confs, _, angles, centers, image, areas = model(frame, conf_threshold=0.7, iou_threshold=0.5)
+    print("ok")
+    #应该在所有的东西启动完成时，在屏幕上显示东西
 
     #     0: background
     #     1: dianchi
@@ -608,53 +687,143 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
     #     8: yaobaozhuang
     #     9: yilaguan
     while True:
-        frame, ret = cap.read()
-        # 裁剪图像
-        frame = extract_region(frame, points=[(446, 22), (824, 28), (818, 406), (446, 400)])
-        cls_, confs, _, angles, centers, image = model(frame, conf_threshold=0.7, iou_threshold=0.5)
-        # 先用夹子丢需要压缩的垃圾，再用夹子丢其他，最后直接倾倒
-        if cls_ is not None:
-            # 先清队列
-            data_to_receive = queue_receive.get()
-            for i in range(len(cls_)):
-                command = f'Tar='
-                command_display = f''
-                if len(cls_)-i == 1 and cls_[i] != 5 and cls_[i] != 9:
-                    # 有害垃圾
-                    if cls_[i] == 1 or cls_[i] == 2 or cls_[i] == 8:
-                        command += f'q1!'
-                        command_display += 'harmful=!'
-                    # 厨余垃圾
-                    elif cls_[i] == 3 or cls_[i] == 7:
-                        command += f'q3!'
-                        command_display += 'kitchen=!'
-                    # 其他垃圾
-                    elif cls_[i] == 4:
-                        command += f'q4!'
-                        command_display += 'other=!'
-                else:
-                    # 丢需压缩垃圾即可回收垃圾
-                    if cls_[i] == 5 or cls_[i] == 9:
-                        command += f'j2x{centers[i][0]}y{centers[i][1]}a{angels[i]-0.0}!'
-                        command_display += 'recyclable=!'
-                    # 有害垃圾
-                    elif cls_[i] == 1 or cls_[i] == 2 or cls_[i] == 8:
-                        command += f'j1x{centers[i][0]}y{centers[i][1]}a{angels[i] - 0.0}!'
-                        command_display += 'harmful=!'
-                    # 厨余垃圾
-                    elif cls_[i] == 3 or cls_[i] == 7:
-                        command += f'j3x{centers[i][0]}y{centers[i][1]}a{angels[i] - 0.0}!'
-                        command_display += 'kitchen=!'
-                    # 其他垃圾
-                    elif cls_[i] == 4:
-                        command += f'j4x{centers[i][0]}y{centers[i][1]}a{angels[i] - 0.0}!'
-                        command_display += 'other=!'
-                queue_display.put(command)
-                queue_transmit.put(command)
-                while(not queue_receive.empty()):
+        time.sleep(0.1)
+        # 非空表示有来自stm32的命令
+        if (not queue_receive.empty()):
+            command = queue_receive.get()
+            if command == 'detect':
+                index_garbage += 1
+                # 更改屏幕 显示在分类
+                command_display = f'classifying'
+                queue_display.put(command_display)
+                start_time = time.time()
+                # 刷新画面
+                while time.time()-start_time <0.6:
+                    ret,frame = cap.read()
                     time.sleep(0.1)
-                data_to_receive = queue_receive.get()
+                count = 0
+                while count < 5:
+                    count += 1
+                    ret, frame = cap.read()
+                    # 裁剪图像
+                    frame = extract_region(frame, points=[(446, 22), (824, 28), (818, 406), (446, 400)])
+                    # 置信度逐级递减
+                    conf_threshold = 0.75-count*0.05
+                    start_time = time.time()
+                    cls_, confs, _, angles, centers, image, areas = model(frame, conf_threshold=conf_threshold, iou_threshold=0.5)
+                    print("本次耗时：", time.time()-start_time)
+
+                    if index_garbage <= 100000000000000:
+                        if len(cls_) == 1:
+
+                            print("第一次", cls_, confs, angles, centers)
+                            # 继续识别一次，与上次作比较
+                            ret, frame = cap.read()
+                            time.sleep(0.1)
+                            ret, frame = cap.read()
+                            new_cls_, confs, _, angles, centers, image, areas = model(frame, conf_threshold=conf_threshold,
+                                                                           iou_threshold=0.5)
+                            # 认为识别正确
+                            print("第二次", new_cls_, confs, angles, centers)
+                            if new_cls_==  cls_:
+                                # 根据类别直接丢
+                                command = f'Tar='
+                                command_display = f''
+
+                                # 有害垃圾
+                                if cls_[0] == 1 or cls_[0] == 2 or cls_[0] == 8:
+                                    command += f'q1!'
+                                    command_display += 'harmful=!'
+                                # 可回收垃圾
+                                elif cls_[0] == 5 or cls_[0] == 9:
+                                    command += f'q2!'
+                                    command_display += 'recycle=!'
+                                # 厨余垃圾
+                                elif cls_[0] == 3 or cls_[0] == 7:
+                                    command += f'q3!'
+                                    command_display += 'kitchen=!'
+                                # 其他垃圾
+                                elif cls_[0] == 4 or cls_[0] ==6:
+                                    command += f'q4!'
+                                    command_display += 'other=!'
+                            # 可采取更大模型去识别本次或其他措施
+                            else:
+                                print("二次识别与一次识别矛盾")
+
+
+                    elif index_garbage>10:
+                        if len(cls_) == 2:
+                            # 继续识别一次，与上次作比较
+                            ret, frame = cap.read()
+                            time.sleep(0.1)
+                            ret, frame = cap.read()
+                            new_cls_, confs, _, angles, centers, image, areas = model(frame, conf_threshold=conf_threshold,
+                                                                           iou_threshold=0.5)
+                            # 认为识别正确
+                            if set(new_cls_) == set(cls_):
+                                print()
+
+                    # 信息发送到其他进程
+                    queue_display.put(command_display)
+                    queue_transmit.put(command)
+                    print(command_display)
+                    print(command)
+                    # print("种类",model.classes[cls_],"置信度",confs, "角度",angles, "中心点",centers)
+                    # # 先用夹子丢需要压缩的垃圾，再用夹子丢其他，最后直接倾倒
+                    # if len(cls_) ==1:
+                    #     # 先清队列
+                    #     data_to_receive = queue_receive.get()
+                    #     for i in range(len(cls_)):
+                    #         command = f'Tar='
+                    #         command_display = f''
+                    #         if len(cls_)-i == 1 and cls_[i] != 5 and cls_[i] != 9:
+                    #             # 有害垃圾
+                    #             if cls_[i] == 1 or cls_[i] == 2 or cls_[i] == 8:
+                    #                 command += f'q1!'
+                    #                 command_display += 'harmful=!'
+                    #             # 厨余垃圾
+                    #             elif cls_[i] == 3 or cls_[i] == 7:
+                    #                 command += f'q3!'
+                    #                 command_display += 'kitchen=!'
+                    #             # 其他垃圾
+                    #             elif cls_[i] == 4:
+                    #                 command += f'q4!'
+                    #                 command_display += 'other=!'
+                    #         else:
+                    #             # 丢需压缩垃圾即可回收垃圾
+                    #             if cls_[i] == 5 or cls_[i] == 9:
+                    #                 command += f'j2x{centers[i][0]}y{centers[i][1]}a{angles[i]-0.0}!'
+                    #                 command_display += 'recyclable=!'
+                    #             # 有害垃圾
+                    #             elif cls_[i] == 1 or cls_[i] == 2 or cls_[i] == 8:
+                    #                 command += f'j1x{centers[i][0]}y{centers[i][1]}a{angles[i] - 0.0}!'
+                    #                 command_display += 'harmful=!'
+                    #             # 厨余垃圾
+                    #             elif cls_[i] == 3 or cls_[i] == 7:
+                    #                 command += f'j3x{centers[i][0]}y{centers[i][1]}a{angles[i] - 0.0}!'
+                    #                 command_display += 'kitchen=!'
+                    #             # 其他垃圾
+                    #             elif cls_[i] == 4:
+                    #                 command += f'j4x{centers[i][0]}y{centers[i][1]}a{angles[i] - 0.0}!'
+                    #                 command_display += 'other=!'
+
+
+                            # 不需要 直接串口发送到屏幕即可
+                            # # 需要stm32发送完成信息
+                            # start_time = time.time()
+                            # while(not queue_receive.empty() and time.time() - start_time < 8):
+                            #     time.sleep(0.1)
+                            # # 时间过长也认为是fail或是error
+                            # if (time.time() - start_time >=7):
+                            #     command_display = "fail=!"
+                            #     queue_display.put(command_display)
+                            # else:
+                            #     data_to_receive = queue_receive.get()
+                            #     if data_to_receive=="success":
+                            #         command_display = "success=!"
+                            #         queue_display.put(command_display)
 def serial_process(queue_receive,queue_transmit,queue_display_ser):
+    #握手多次发送
     def uart_transition(com, ser_ttyAMA4):
         serial_cnt = 1  # 调用一次该程序
         while ser_ttyAMA4.in_waiting > 0:
@@ -670,40 +839,73 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                 serial_cnt = 0
                 print("serial_cnt=", serial_cnt)
                 break
+
+    while True:
+        time.sleep(5)
+        queue_receive.put("detect")
     # 创建串口对象
     port = '/dev/ttyTHS1'  # 替换为你的串口号
     baudrate = 115200
     timeout = 1
     ser = serial.Serial(port, baudrate, timeout=timeout)
-
     buffer = ""
 
     while True:
-        if ser.in_waiting > 0:
-            # 读取一行数据并解码
+        while True:
             try:
-                received_data = ser.readline().decode('ascii').strip()
-                buffer += received_data  # 将接收到的数据添加到缓冲区
+                if ser.in_waiting > 0:  # 检查是否有数据等待读取
+                    # 读取一行数据并解码
+                    try:
+                        received_data = ser.readline().decode('ascii').strip()
+                        buffer += received_data  # 将接收到的数据添加到缓冲区
 
-                # 假设数据以特定标识符结束（例如"\n"）
-                if '\n' in buffer:
-                    messages = buffer.split('\n')  # 根据标识符分割消息
-                    for message in messages:
-                        if message:  # 确保消息不为空
-                            print(f"接收到的数据: {message}")
-                            if message == "some_condition":  # 替换为实际的条件
-                                print("满足条件，执行某些操作。")
-                                queue_receive.put(message)
-                            elif message == "full":
-                                queue_display_ser.put("full=!")
-                    buffer = ""  # 清空缓冲区
-            except UnicodeDecodeError:
-                # 如果解码失败，处理异常
-                print("Decoding error: received data contains invalid ASCII characters.")
+                        # 假设数据以特定标识符结束（例如"\n"）
+                        if '!' in buffer:
+                            messages = buffer.split('!')  # 根据标识符分割消息
+                            for message in messages:
+                                if message:  # 确保消息不为空
+                                    print(f"接收到的数据: {message}")
+                                    if message == "detect":  # 替换为实际的条件
+                                        print("已发现有垃圾丢下，准备识别")
+                                        queue_receive.put("detect")
+                                    # 满载
+                                    elif message == "full":
+                                        queue_display_ser.put("full=!")
+                                    # 动作完成
+                                    elif message == "success":
+                                        queue_display_ser.put("success=!")
+                            buffer = ""  # 清空缓冲区
+                    except UnicodeDecodeError:
+                        # 如果解码失败，处理异常
+                        print("Decoding error: received data contains invalid ASCII characters.")
+
+            except OSError as e:
+                print(f"OSError occurred: {e}")
+                time.sleep(0.5)  # 程序暂停一秒后重试
+                ser.close()
+                ser = serial.Serial(port, baudrate, timeout=timeout)
+            except serial.SerialException as e:
+                print(f"SerialException occurred: {e}")
+                print("Attempting to reinitialize the serial port...")
+                time.sleep(0.5)  # 程序暂停一秒后重试
+                ser.close()
+                ser = serial.Serial(port, baudrate, timeout=timeout)
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+                time.sleep(0.5)  # 程序暂停一秒后重试
+                ser.close()
+                ser = serial.Serial(port, baudrate, timeout=timeout)
 
         if not queue_transmit.empty():
             data_to_send = queue_transmit.get()
-            ser.write(data_to_send.encode('ascii'))
+            try:
+                ser.write(data_to_send.encode('ascii'))
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+                time.sleep(0.5)  # 程序暂停一秒后重试
+                ser.close()
+                ser = serial.Serial(port, baudrate, timeout=timeout)
+                ser.write(data_to_send.encode('ascii'))
             print(f"发送的数据: {data_to_send}")
         time.sleep(0.1)
 
