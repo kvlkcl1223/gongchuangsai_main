@@ -728,7 +728,7 @@ def yolo_process(queue_display, queue_receive, queue_transmit):
                                                                                       iou_threshold=0.5)
                             # 判断是否识别正确
                             print("第二次", new_cls_, confs, angles, centers, areas)
-                            if new_cls_ == cls_ and abs(new_areas[0] - new_areas[1]) < 0.1:
+                            if new_cls_ == cls_ and abs(new_areas[0] - areas[0]) < 0.1:
                                 # 根据类别直接丢
                                 command = f'Tar='
                                 command_display = f''
@@ -749,6 +749,7 @@ def yolo_process(queue_display, queue_receive, queue_transmit):
                                 elif cls_[0] == 4 or cls_[0] == 6:
                                     command += f'j4x{center[0]}y{center[1]}a105!'
                                     command_display += 'other=!'
+                                break
                             # 可采取更大模型去识别本次或其他措施
                             else:
                                 print("二次识别与一次识别矛盾")
@@ -857,62 +858,66 @@ def serial_process(queue_receive, queue_transmit, queue_display_ser):
     buffer = ""
 
     while True:
-        while True:
-            try:
-                if ser.in_waiting > 0:  # 检查是否有数据等待读取
-                    # 读取一行数据并解码
-                    try:
-                        received_data = ser.readline().decode('ascii').strip()
-                        buffer += received_data  # 将接收到的数据添加到缓冲区
 
-                        # 假设数据以特定标识符结束（例如"\n"）
-                        if '!' in buffer:
-                            messages = buffer.split('!')  # 根据标识符分割消息
-                            for message in messages:
-                                if message:  # 确保消息不为空
-                                    print(f"接收到的数据: {message}")
-                                    if message == "detect":  # 替换为实际的条件
-                                        print("已发现有垃圾丢下，准备识别")
-                                        queue_receive.put("detect")
-                                    # 满载
-                                    elif message == "full":
-                                        queue_display_ser.put("full=!")
-                                    # 动作完成
-                                    elif message == "success":
-                                        queue_display_ser.put("success=!")
-                            buffer = ""  # 清空缓冲区
-                    except UnicodeDecodeError:
-                        # 如果解码失败，处理异常
-                        print("Decoding error: received data contains invalid ASCII characters.")
+        try:
+            if ser.in_waiting > 0:  # 检查是否有数据等待读取
+                # 读取一行数据并解码
+                try:
+                    received_data = ser.readline().decode('ascii').strip()
+                    buffer += received_data  # 将接收到的数据添加到缓冲区
 
-            except OSError as e:
-                print(f"OSError occurred: {e}")
-                time.sleep(0.5)  # 程序暂停一秒后重试
-                ser.close()
-                ser = serial.Serial(port, baudrate, timeout=timeout)
-            except serial.SerialException as e:
-                print(f"SerialException occurred: {e}")
-                print("Attempting to reinitialize the serial port...")
-                time.sleep(0.5)  # 程序暂停一秒后重试
-                ser.close()
-                ser = serial.Serial(port, baudrate, timeout=timeout)
-            except Exception as e:
-                print(f"Unexpected error: {e}")
-                time.sleep(0.5)  # 程序暂停一秒后重试
-                ser.close()
-                ser = serial.Serial(port, baudrate, timeout=timeout)
+                    # 假设数据以特定标识符结束（例如"\n"）
+                    if '!' in buffer:
+                        messages = buffer.split('!')  # 根据标识符分割消息
+                        for message in messages:
+                            if message:  # 确保消息不为空
+                                print(f"接收到的数据: {message}")
+                                if message == "detect":  # 替换为实际的条件
+                                    print("已发现有垃圾丢下，准备识别")
+                                    queue_receive.put("detect")
+                                # 满载
+                                elif message == "full":
+                                    queue_display_ser.put("full=!")
+                                # 动作完成
+                                elif message == "success":
+                                    queue_display_ser.put("success=!")
+                        buffer = ""  # 清空缓冲区
+                except UnicodeDecodeError:
+                    # 如果解码失败，处理异常
+                    print("Decoding error: received data contains invalid ASCII characters.")
+
+        except OSError as e:
+            print(f"OSError occurred: {e}")
+            time.sleep(0.5)  # 程序暂停一秒后重试
+            ser.close()
+            ser = serial.Serial(port, baudrate, timeout=timeout)
+        except serial.SerialException as e:
+            print(f"SerialException occurred: {e}")
+            print("Attempting to reinitialize the serial port...")
+            time.sleep(0.5)  # 程序暂停一秒后重试
+            ser.close()
+            ser = serial.Serial(port, baudrate, timeout=timeout)
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            time.sleep(0.5)  # 程序暂停一秒后重试
+            ser.close()
+            ser = serial.Serial(port, baudrate, timeout=timeout)
 
         if not queue_transmit.empty():
             data_to_send = queue_transmit.get()
+            print(f"准备发送的数据: {data_to_send}")
             try:
                 ser.write(data_to_send.encode('ascii'))
+                print(f"已发送的数据: {data_to_send}")
+
             except Exception as e:
                 print(f"Unexpected error: {e}")
-                time.sleep(0.5)  # 程序暂停一秒后重试
+                time.sleep(0.2)  # 程序暂停一秒后重试
                 ser.close()
                 ser = serial.Serial(port, baudrate, timeout=timeout)
                 ser.write(data_to_send.encode('ascii'))
-            print(f"发送的数据: {data_to_send}")
+                print(f"已发送的数据: {data_to_send}")
+
         time.sleep(0.1)
 
 
@@ -931,6 +936,6 @@ if __name__ == '__main__':
     main_proc.start()
     serial_proc.start()
 
-    display_proc.join()
+    #display_proc.join()
     main_proc.join()
     serial_proc.join()
