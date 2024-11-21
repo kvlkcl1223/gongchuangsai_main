@@ -766,29 +766,30 @@ def yolo_process(queue_display, queue_receive, queue_transmit):
                                     frame,
                                     conf_threshold=conf_threshold,
                                     iou_threshold=0.5)
-                                print(large_cls_, large_confs, large_angles, large_centers, large_areas)
+                                print("large",large_cls_, large_confs, large_angles, large_centers, large_areas)
                                 # 仲裁哪次是正确的
-                                if large_cls_ == cls_ or large_cls_ == new_cls_:
-                                    print("仲裁匹配")
-                                    command = f'Tar='
-                                    command_display = f''
-                                    # 有害垃圾
-                                    if large_cls_[0] == 1 or large_cls_[0] == 2 or large_cls_[0] == 8:
-                                        command += f'q2!'
-                                        command_display += 'harmful=!'
-                                    # 可回收垃圾
-                                    elif large_cls_[0] == 5 or large_cls_[0] == 9:
-                                        command += f'q1!'
-                                        command_display += 'recycle=!'
-                                    # 厨余垃圾
-                                    elif large_cls_[0] == 3 or large_cls_[0] == 7:
-                                        command += f'q3!'
-                                        command_display += 'kitchen=!'
-                                    # 其他垃圾
-                                    elif large_cls_[0] == 4 or large_cls_[0] == 6:
-                                        command += f'q4!'
-                                        command_display += 'other=!'
-                                    break
+                                if (len(large_areas) > 0):
+                                    if large_cls_ == cls_ or large_cls_ == new_cls_:
+                                        print("仲裁匹配")
+                                        command = f'Tar='
+                                        command_display = f''
+                                        # 有害垃圾
+                                        if large_cls_[0] == 1 or large_cls_[0] == 2 or large_cls_[0] == 8:
+                                            command += f'q2!'
+                                            command_display += 'harmful=!'
+                                        # 可回收垃圾
+                                        elif large_cls_[0] == 5 or large_cls_[0] == 9:
+                                            command += f'q1!'
+                                            command_display += 'recycle=!'
+                                        # 厨余垃圾
+                                        elif large_cls_[0] == 3 or large_cls_[0] == 7:
+                                            command += f'q3!'
+                                            command_display += 'kitchen=!'
+                                        # 其他垃圾
+                                        elif large_cls_[0] == 4 or large_cls_[0] == 6:
+                                            command += f'q4!'
+                                            command_display += 'other=!'
+                                        break
                                 # 仲裁之后依然无法判断，投到可回收垃圾
                                 else:
                                     print("仲裁后依然无法处理")
