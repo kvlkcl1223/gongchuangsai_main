@@ -663,7 +663,7 @@ def yolo_process(queue_display, queue_receive, queue_transmit):
     model_large_path = "large.onnx"
     model_large = YOLOv8Seg(model_large_path)
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
-    cap = cv2.VideoCapture(0)
+    #cap = cv2.VideoCapture(0)
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     cap.set(cv2.CAP_PROP_FOURCC, fourcc)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
@@ -903,10 +903,10 @@ def serial_process(queue_receive, queue_transmit, queue_display_ser):
                 serial_cnt = 0
                 print("serial_cnt=", serial_cnt)
                 break
-    # #测试代码
-    # while True:
-    #     time.sleep(5)
-    #     queue_receive.put("detect")
+    #测试代码
+    while True:
+        time.sleep(5)
+        queue_receive.put("detect")
 
     # 创建串口对象
     port = '/dev/ttyTHS1'  # 替换为你的串口号
