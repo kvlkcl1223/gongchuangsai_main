@@ -68,6 +68,7 @@ class YOLOv8Seg:
             segments (List): list of segments.
             masks (np.ndarray): [N, H, W], output masks.
         """
+
         # Pre-process
         im, ratio, (pad_w, pad_h) = self.preprocess(im0)
 
@@ -386,7 +387,7 @@ class SimpleApp:
         # 加载背景图片
         self.background_image = Image.open('background.jpg')  # 替换为你的背景图片路径
         self.background_image = self.background_image.resize(
-            (self.root.winfo_screenwidth(), self.root.winfo_screenheight()), Image.ANTIALIAS)
+            (self.root.winfo_screenwidth(), self.root.winfo_screenheight()))
         self.bg_img = ImageTk.PhotoImage(self.background_image)
 
         # 创建背景标签
@@ -588,7 +589,7 @@ def display_process(queue_display,queue_display_ser):
     root.mainloop()
 
 
-def extract_region(image, points, output_size=(640, 640)):
+def extract_region(image, points=[(412,30),(786,24),(794,404),(418,406)], output_size=(640, 640)):
     """
     从给定的图像中提取四边形区域，并将其调整为指定的输出大小。
 
@@ -616,7 +617,7 @@ def extract_region(image, points, output_size=(640, 640)):
 
     return extracted_region
 
-def transform_point_to_rotated_coords_clockwise(point, angle=-45.0):
+def transform_point_to_rotated_coords_clockwise(point, angle=45.0):
     """
     计算坐标系顺时针旋转指定角度后，点在新坐标系中的位置。
 
@@ -658,6 +659,8 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
 
     model_path = "best.onnx"
     model = YOLOv8Seg(model_path)
+    model_large_path = "large.onnx"
+    model_large = YOLOv8Seg(model_large_path)
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
     cap = cv2.VideoCapture(0)
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
@@ -670,9 +673,11 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
     index_garbage =0
     # 预热模型
     start_time = time.time()
-    while time.time() - start_time < 0.6:
+    while time.time() - start_time < 100:
         ret, frame = cap.read()
         cls_, confs, _, angles, centers, image, areas = model(frame, conf_threshold=0.7, iou_threshold=0.5)
+        cls_, confs, _, angles, centers, image, areas = model_large(frame, conf_threshold=0.7, iou_threshold=0.5)
+
     print("ok")
     #应该在所有的东西启动完成时，在屏幕上显示东西
 
@@ -690,41 +695,43 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
         time.sleep(0.1)
         # 非空表示有来自stm32的命令
         if (not queue_receive.empty()):
-            command = queue_receive.get()
-            if command == 'detect':
+            command_receive = queue_receive.get()
+            if command_receive == 'detect':
                 index_garbage += 1
                 # 更改屏幕 显示在分类
+                command = f''
                 command_display = f'classifying'
                 queue_display.put(command_display)
                 start_time = time.time()
                 # 刷新画面
-                while time.time()-start_time <0.6:
-                    ret,frame = cap.read()
+                while time.time()-start_time < 0.1:
+                    ret, frame = cap.read()
                     time.sleep(0.1)
                 count = 0
                 while count < 5:
                     count += 1
                     ret, frame = cap.read()
                     # 裁剪图像
-                    frame = extract_region(frame, points=[(446, 22), (824, 28), (818, 406), (446, 400)])
+                    frame = extract_region(frame)
                     # 置信度逐级递减
                     conf_threshold = 0.75-count*0.05
                     start_time = time.time()
                     cls_, confs, _, angles, centers, image, areas = model(frame, conf_threshold=conf_threshold, iou_threshold=0.5)
                     print("本次耗时：", time.time()-start_time)
 
+                    # 单垃圾分类
                     if index_garbage <= 100000000000000:
                         if len(cls_) == 1:
 
-                            print("第一次", cls_, confs, angles, centers)
+                            print("第一次", cls_, confs, angles, centers,areas)
                             # 继续识别一次，与上次作比较
                             ret, frame = cap.read()
                             time.sleep(0.1)
                             ret, frame = cap.read()
-                            new_cls_, confs, _, angles, centers, image, areas = model(frame, conf_threshold=conf_threshold,
+                            new_cls_, new_confs, _, new_angles, new_centers, image, new_areas = model(frame, conf_threshold=conf_threshold,
                                                                            iou_threshold=0.5)
+                            print("第二次", new_cls_, new_confs, new_angles, new_centers, new_areas)
                             # 认为识别正确
-                            print("第二次", new_cls_, confs, angles, centers)
                             if new_cls_==  cls_:
                                 # 根据类别直接丢
                                 command = f'Tar='
@@ -732,11 +739,11 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
 
                                 # 有害垃圾
                                 if cls_[0] == 1 or cls_[0] == 2 or cls_[0] == 8:
-                                    command += f'q1!'
+                                    command += f'q2!'
                                     command_display += 'harmful=!'
                                 # 可回收垃圾
                                 elif cls_[0] == 5 or cls_[0] == 9:
-                                    command += f'q2!'
+                                    command += f'q1!'
                                     command_display += 'recycle=!'
                                 # 厨余垃圾
                                 elif cls_[0] == 3 or cls_[0] == 7:
@@ -746,28 +753,82 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                                 elif cls_[0] == 4 or cls_[0] ==6:
                                     command += f'q4!'
                                     command_display += 'other=!'
+                                break
                             # 可采取更大模型去识别本次或其他措施
                             else:
                                 print("二次识别与一次识别矛盾")
+                                ret, frame = cap.read()
+                                time.sleep(0.1)
+                                ret, frame = cap.read()
+                                large_cls_, large_confs, _, large_angles, large_centers, image, large_areas = model_large(frame,
+                                                                                                          conf_threshold=conf_threshold,
+                                                                                                          iou_threshold=0.5)
+                                # 仲裁哪次是正确的
+                                if large_cls_ == cls_ or large_cls_ == new_cls_:
+                                    command = f'Tar='
+                                    command_display = f''
+                                    # 有害垃圾
+                                    if large_cls_[0] == 1 or large_cls_[0] == 2 or large_cls_[0] == 8:
+                                        command += f'q2!'
+                                        command_display += 'harmful=!'
+                                    # 可回收垃圾
+                                    elif large_cls_[0] == 5 or large_cls_[0] == 9:
+                                        command += f'q1!'
+                                        command_display += 'recycle=!'
+                                    # 厨余垃圾
+                                    elif large_cls_[0] == 3 or large_cls_[0] == 7:
+                                        command += f'q3!'
+                                        command_display += 'kitchen=!'
+                                    # 其他垃圾
+                                    elif large_cls_[0] == 4 or large_cls_[0] == 6:
+                                        command += f'q4!'
+                                        command_display += 'other=!'
+                                    break
+                                # 仲裁之后依然无法判断，投到可回收垃圾
+                                else:
+                                    print("仲裁后依然无法处理")
 
 
-                    elif index_garbage>10:
+                    # 双垃圾分类
+                    elif index_garbage > 10:
                         if len(cls_) == 2:
                             # 继续识别一次，与上次作比较
                             ret, frame = cap.read()
                             time.sleep(0.1)
                             ret, frame = cap.read()
-                            new_cls_, confs, _, angles, centers, image, areas = model(frame, conf_threshold=conf_threshold,
+                            new_cls_, new_confs, _, new_angles, new_centers, image, new_areas = model(frame, conf_threshold=conf_threshold,
                                                                            iou_threshold=0.5)
+                            print("第二次", new_cls_, new_confs, new_angles, new_centers, new_areas)
                             # 认为识别正确
-                            if set(new_cls_) == set(cls_):
+                            if set(new_cls_) == set(cls_) and len(cls_) == 2 :
                                 print()
+                            # 两次不匹配，申请仲裁
+                            else:
+                                print("二次识别与一次识别矛盾")
+                                ret, frame = cap.read()
+                                time.sleep(0.1)
+                                ret, frame = cap.read()
+                                large_cls_, large_confs, _, large_angles, large_centers, image, large_areas = model_large(
+                                    frame,
+                                    conf_threshold=conf_threshold,
+                                    iou_threshold=0.5)
+                                # 仲裁结果与某次结果匹配
+                                if set(large_cls_) == set(cls_) or set(large_cls_) == set(large_cls_) and len(large_cls_) == 2 :
+                                    print()
+                                # 不匹配的结果
+                                else:
+                                    print()
+                # 处理未成功识的情识别
+                if (command == ""):
+                    print()
 
-                    # 信息发送到其他进程
-                    queue_display.put(command_display)
+                # 信息发送到其他进程
+                if (command != ""):
                     queue_transmit.put(command)
-                    print(command_display)
                     print(command)
+                if (command_display != ""):
+                    queue_display.put(command_display)
+                    print(command_display)
                     # print("种类",model.classes[cls_],"置信度",confs, "角度",angles, "中心点",centers)
                     # # 先用夹子丢需要压缩的垃圾，再用夹子丢其他，最后直接倾倒
                     # if len(cls_) ==1:
@@ -822,23 +883,27 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                             #     if data_to_receive=="success":
                             #         command_display = "success=!"
                             #         queue_display.put(command_display)
+
+def uart_transition(com, ser_ttyAMA4):
+    serial_cnt = 1  # 调用一次该程序
+
+    while ser_ttyAMA4.in_waiting > 0:
+        ser_ttyAMA4.read(ser_ttyAMA4.in_waiting)  # 读取并丢弃所有数据
+    ser_ttyAMA4.flushInput()
+
+    while ser_ttyAMA4.in_waiting == 0:
+        ser_ttyAMA4.flushInput()
+        ser_ttyAMA4.write(com.encode('ascii'))
+        time.sleep(0.03)
+        serial_cnt += 1
+
+        if serial_cnt > 5:
+            serial_cnt = 0
+            print("serial_cnt=", serial_cnt)
+            break
+
 def serial_process(queue_receive,queue_transmit,queue_display_ser):
     #握手多次发送
-    def uart_transition(com, ser_ttyAMA4):
-        serial_cnt = 1  # 调用一次该程序
-        while ser_ttyAMA4.in_waiting > 0:
-            ser_ttyAMA4.read(ser_ttyAMA4.in_waiting)  # 读取并丢弃所有数据
-        ser_ttyAMA4.flushInput()
-        while ser_ttyAMA4.in_waiting == 0:
-            ser_ttyAMA4.flushInput()
-            ser_ttyAMA4.write(com.encode('ascii'))
-            time.sleep(0.01)
-            serial_cnt += 1
-
-            if serial_cnt > 5:
-                serial_cnt = 0
-                print("serial_cnt=", serial_cnt)
-                break
 
     while True:
         time.sleep(5)
@@ -868,6 +933,9 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                                     if message == "detect":  # 替换为实际的条件
                                         print("已发现有垃圾丢下，准备识别")
                                         queue_receive.put("detect")
+                                        #延迟清串口
+                                        time.sleep(0.2)
+                                        ser.flush()
                                     # 满载
                                     elif message == "full":
                                         queue_display_ser.put("full=!")
@@ -881,31 +949,31 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
 
             except OSError as e:
                 print(f"OSError occurred: {e}")
-                time.sleep(0.5)  # 程序暂停一秒后重试
+                time.sleep(0.2)  # 程序暂停一秒后重试
                 ser.close()
                 ser = serial.Serial(port, baudrate, timeout=timeout)
             except serial.SerialException as e:
                 print(f"SerialException occurred: {e}")
                 print("Attempting to reinitialize the serial port...")
-                time.sleep(0.5)  # 程序暂停一秒后重试
+                time.sleep(0.2)  # 程序暂停一秒后重试
                 ser.close()
                 ser = serial.Serial(port, baudrate, timeout=timeout)
             except Exception as e:
                 print(f"Unexpected error: {e}")
-                time.sleep(0.5)  # 程序暂停一秒后重试
+                time.sleep(0.2)  # 程序暂停一秒后重试
                 ser.close()
                 ser = serial.Serial(port, baudrate, timeout=timeout)
 
         if not queue_transmit.empty():
             data_to_send = queue_transmit.get()
             try:
-                ser.write(data_to_send.encode('ascii'))
+                uart_transition(data_to_send.encode('ascii'), ser)
             except Exception as e:
                 print(f"Unexpected error: {e}")
-                time.sleep(0.5)  # 程序暂停一秒后重试
+                time.sleep(0.2)  # 程序暂停一秒后重试
                 ser.close()
                 ser = serial.Serial(port, baudrate, timeout=timeout)
-                ser.write(data_to_send.encode('ascii'))
+                uart_transition(data_to_send.encode('ascii'), ser)
             print(f"发送的数据: {data_to_send}")
         time.sleep(0.1)
 
