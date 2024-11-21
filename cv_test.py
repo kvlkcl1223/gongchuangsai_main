@@ -658,7 +658,7 @@ def yolo_process(queue_display, queue_receive, queue_transmit):
     #     # time.sleep(3)
     #     # queue.put('garbage=i2+q2+i3+q19+i1+q7!')
 
-    model_path = "best.onnx"
+    model_path = "large.onnx"
     model = YOLOv8Seg(model_path)
     model_large_path = "large.onnx"
     model_large = YOLOv8Seg(model_large_path)
