@@ -763,8 +763,10 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                                 large_cls_, large_confs, _, large_angles, large_centers, image, large_areas = model_large(frame,
                                                                                                           conf_threshold=conf_threshold,
                                                                                                           iou_threshold=0.5)
+                                print(large_cls_,large_confs,large_angles,large_centers,large_areas)
                                 # 仲裁哪次是正确的
                                 if large_cls_ == cls_ or large_cls_ == new_cls_:
+                                    print("仲裁匹配")
                                     command = f'Tar='
                                     command_display = f''
                                     # 有害垃圾
@@ -902,6 +904,26 @@ def uart_transition(com, ser_ttyAMA4):
             print("serial_cnt=", serial_cnt)
             break
 
+
+def open_serial(port, baudrate, timeout=None, retry_interval=1):
+    """
+    尝试打开串口，直到成功为止。
+
+    :param port: 串口端口号，例如 'COM3' 或 '/dev/ttyUSB0'
+    :param baudrate: 波特率，例如 9600
+    :param timeout: 超时时间，默认 None
+    :param retry_interval: 重试间隔时间（秒），默认 1 秒
+    :return: 打开的 serial.Serial 对象
+    """
+    while True:
+        try:
+            ser = serial.Serial(port, baudrate, timeout=timeout)
+            print(f"Successfully opened serial port: {port}")
+            return ser  # 返回成功打开的串口对象
+        except serial.SerialException as e:
+            print(f"Failed to open {port}: {e}. Retrying in {retry_interval} second(s)...")
+            time.sleep(retry_interval)
+
 def serial_process(queue_receive,queue_transmit,queue_display_ser):
     #握手多次发送
 
@@ -912,7 +934,8 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
     port = '/dev/ttyTHS1'  # 替换为你的串口号
     baudrate = 115200
     timeout = 1
-    ser = serial.Serial(port, baudrate, timeout=timeout)
+    ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
+
     buffer = ""
 
     while True:
@@ -922,6 +945,7 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                     # 读取一行数据并解码
                     try:
                         received_data = ser.readline().decode('ascii').strip()
+                        print("received_data", received_data)
                         buffer += received_data  # 将接收到的数据添加到缓冲区
 
                         # 假设数据以特定标识符结束（例如"\n"）
