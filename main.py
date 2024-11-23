@@ -723,7 +723,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
     index_garbage = 200
     # 预热模型
     start_time = time.time()
-    while time.time() - start_time < 100:
+    while time.time() - start_time < 0.2:
         ret, frame = cap.read()
         cls_, confs, _, angles, centers, image, areas = model(frame, conf_threshold=0.7, iou_threshold=0.5)
         cls_, confs, _, angles, centers, image, areas = model_large(frame, conf_threshold=0.7, iou_threshold=0.5)
@@ -869,6 +869,10 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                         final_cls_.append(sum_cls_[grouped_indices[1][0]])
                         final_centers.append(sum_centers[grouped_indices[0][0]])
                         final_centers.append(sum_centers[grouped_indices[1][0]])
+                        final_angles.append(sum_angles[grouped_indices[0][0]])
+                        final_angles.append(sum_angles[grouped_indices[1][0]])
+                        final_areas.append(sum_areas[grouped_indices[0][0]])
+                        final_areas.append(sum_areas[grouped_indices[0][0]])
                     # 此情况出现概率较小，选择平均置信度最高的或者次数与概率积的和
                     elif group_count > 2:
                         print("多于两个")
@@ -893,6 +897,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                     # 少于两个，尝试用大模型补充几次结果
                     elif group_count < 2:
                         print("少于两个")
+                        count = 0
                         while count < 2:
                             count += 1
                             ret, frame = cap.read()
@@ -916,6 +921,10 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                             final_cls_.append(sum_cls_[grouped_indices[1][0]])
                             final_centers.append(sum_centers[grouped_indices[0][0]])
                             final_centers.append(sum_centers[grouped_indices[1][0]])
+                            final_angles.append(sum_angles[grouped_indices[0][0]])
+                            final_angles.append(sum_angles[grouped_indices[1][0]])
+                            final_areas.append(sum_areas[grouped_indices[0][0]])
+                            final_areas.append(sum_areas[grouped_indices[0][0]])
                         # 此情况出现概率较小，选择平均置信度最高的或者次数与概率积的和
                         elif group_count > 2:
                             # 计算每组的权重 (概率 × 次数)
