@@ -684,6 +684,16 @@ def group_coordinates_by_threshold(coords, threshold=20):
     return len(groups), groups
 
 
+def open_camera(try_from: int = 0, try_to: int = 10):
+    # 打开摄像头
+
+    cam = cv2.VideoCapture()
+    for i in range(try_from, try_to):
+        cam.open(i)
+        if cam.isOpened():
+            return cam, i
+    raise Exception("Camera not found")
+
 def yolo_process(queue_display,queue_receive, queue_transmit):
 
     # time.sleep(10)
@@ -701,7 +711,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
     model = YOLOv8Seg(model_path)
     model_large_path = "large.onnx"
     model_large = YOLOv8Seg(model_large_path)
-    cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+    cap, i = open_camera()
     # cap = cv2.VideoCapture(0)
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     cap.set(cv2.CAP_PROP_FOURCC, fourcc)
@@ -834,6 +844,8 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                     while count < 5:
                         count += 1
                         ret, frame = cap.read()
+                        time.sleep(0.1)
+                        ret, frame = cap.read()
                         # 置信度逐级递减
                         conf_threshold = 0.75 - count * 0.05
                         start_time = time.time()
@@ -847,15 +859,16 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                         sum_confs.extend(confs)
                         sum_areas.extend(areas)
                         sum_centers.extend(centers)
-
+                    print("sum:",sum_cls_,sum_confs,sum_angles,sum_centers,sum_areas)
                     # 对统计结果进行处理
                     group_count, grouped_indices = group_coordinates_by_threshold(sum_centers)
-
+                    print("数量", group_count,"索引",grouped_indices)
                     if group_count == 2:
-                        final_cls_.extend(sum_cls_[grouped_indices[0][0]])
-                        final_cls_.extend(sum_cls_[grouped_indices[1][0]])
-                        final_centers.extend(sum_centers[grouped_indices[0][0]])
-                        final_centers.extend(sum_centers[grouped_indices[1][0]])
+
+                        final_cls_.append(sum_cls_[grouped_indices[0][0]])
+                        final_cls_.append(sum_cls_[grouped_indices[1][0]])
+                        final_centers.append(sum_centers[grouped_indices[0][0]])
+                        final_centers.append(sum_centers[grouped_indices[1][0]])
                     # 此情况出现概率较小，选择平均置信度最高的或者次数与概率积的和
                     elif group_count > 2:
                         # 计算每组的权重 (概率 × 次数)
@@ -876,6 +889,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
 
                     # 少于两个，尝试用大模型补充几次结果
                     elif group_count < 2:
+                        print("少于两个")
                         while count < 2:
                             count += 1
                             ret, frame = cap.read()
@@ -894,10 +908,10 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                             sum_centers.extend(centers)
                         # 根据添加后的结果进行上述操作
                         if group_count == 2:
-                            final_cls_.extend(sum_cls_[grouped_indices[0][0]])
-                            final_cls_.extend(sum_cls_[grouped_indices[1][0]])
-                            final_centers.extend(sum_centers[grouped_indices[0][0]])
-                            final_centers.extend(sum_centers[grouped_indices[1][0]])
+                            final_cls_.append(sum_cls_[grouped_indices[0][0]])
+                            final_cls_.append(sum_cls_[grouped_indices[1][0]])
+                            final_centers.append(sum_centers[grouped_indices[0][0]])
+                            final_centers.append(sum_centers[grouped_indices[1][0]])
                         # 此情况出现概率较小，选择平均置信度最高的或者次数与概率积的和
                         elif group_count > 2:
                             # 计算每组的权重 (概率 × 次数)
