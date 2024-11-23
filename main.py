@@ -11,6 +11,33 @@ import onnxruntime as ort
 import numpy as np
 import math
 
+def extract_region(image, points=[(412,30),(786,24),(794,404),(418,406)], output_size=(640, 640)):
+    """
+    从给定的图像中提取四边形区域，并将其调整为指定的输出大小。
+
+    参数:
+    - image: 要提取的图像。
+    - points: 四个坐标点 [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]，表示四边形的四个角。
+    - output_size: 提取的区域图像的输出大小 (width, height)，默认为 (640, 640)。
+
+    返回:
+    - 提取的区域图像，尺寸为指定的 output_size。
+    """
+    # 定义目标图像的四个角点，大小为指定的输出大小
+    dst_points = np.array([
+        [0, 0],
+        [output_size[0] - 1, 0],
+        [output_size[0] - 1, output_size[1] - 1],
+        [0, output_size[1] - 1]
+    ], dtype="float32")
+
+    # 计算透视变换矩阵
+    M = cv2.getPerspectiveTransform(np.array(points, dtype="float32"), dst_points)
+
+    # 应用透视变换，并调整为指定的输出大小
+    extracted_region = cv2.warpPerspective(image, M, output_size)
+
+    return extracted_region
 
 class YOLOv8Seg:
     """YOLOv8 segmentation model."""
@@ -70,6 +97,7 @@ class YOLOv8Seg:
         """
 
         # Pre-process
+        im0 = extract_region(im0)
         im, ratio, (pad_w, pad_h) = self.preprocess(im0)
 
         # Ort inference
@@ -589,33 +617,7 @@ def display_process(queue_display,queue_display_ser):
     root.mainloop()
 
 
-def extract_region(image, points=[(412,30),(786,24),(794,404),(418,406)], output_size=(640, 640)):
-    """
-    从给定的图像中提取四边形区域，并将其调整为指定的输出大小。
 
-    参数:
-    - image: 要提取的图像。
-    - points: 四个坐标点 [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]，表示四边形的四个角。
-    - output_size: 提取的区域图像的输出大小 (width, height)，默认为 (640, 640)。
-
-    返回:
-    - 提取的区域图像，尺寸为指定的 output_size。
-    """
-    # 定义目标图像的四个角点，大小为指定的输出大小
-    dst_points = np.array([
-        [0, 0],
-        [output_size[0] - 1, 0],
-        [output_size[0] - 1, output_size[1] - 1],
-        [0, output_size[1] - 1]
-    ], dtype="float32")
-
-    # 计算透视变换矩阵
-    M = cv2.getPerspectiveTransform(np.array(points, dtype="float32"), dst_points)
-
-    # 应用透视变换，并调整为指定的输出大小
-    extracted_region = cv2.warpPerspective(image, M, output_size)
-
-    return extracted_region
 
 def transform_point_to_rotated_coords_clockwise(point, angle=45.0):
     """
@@ -644,6 +646,44 @@ def transform_point_to_rotated_coords_clockwise(point, angle=45.0):
 
     return (x_new, y_new)
 
+
+import numpy as np
+
+
+def group_coordinates_by_threshold(coords, threshold=20):
+    """
+    按距离阈值对坐标进行分组，返回每组的索引切片。
+
+    Args:
+        coords (list): 坐标列表，形如 [(x1, y1), (x2, y2), ...]。
+        threshold (float): 判断重复的距离阈值。
+
+    Returns:
+        tuple:
+            int: 非重复组的数量。
+            list: 分组的索引切片，每组是一个列表。
+    """
+    coords = np.array(coords)  # 转为 NumPy 数组便于计算
+    groups = []  # 存储分组的索引
+
+    visited = set()  # 记录已处理的点索引
+    for i, coord in enumerate(coords):
+        if i in visited:
+            continue
+        group = [i]  # 初始化当前组，包含当前点
+        visited.add(i)  # 标记当前点已访问
+
+        # 找到与当前点接近的其他点
+        for j in range(len(coords)):
+            if j not in visited and np.linalg.norm(coord - coords[j]) <= threshold:
+                group.append(j)
+                visited.add(j)
+
+        groups.append(group)  # 添加到分组列表
+
+    return len(groups), groups
+
+
 def yolo_process(queue_display,queue_receive, queue_transmit):
 
     # time.sleep(10)
@@ -662,7 +702,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
     model_large_path = "large.onnx"
     model_large = YOLOv8Seg(model_large_path)
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
-    cap = cv2.VideoCapture(0)
+    # cap = cv2.VideoCapture(0)
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     cap.set(cv2.CAP_PROP_FOURCC, fourcc)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
@@ -670,7 +710,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
     # 角度偏差量
     angle_error = 0
     # 垃圾轮数计数
-    index_garbage =0
+    index_garbage = 200
     # 预热模型
     start_time = time.time()
     while time.time() - start_time < 100:
@@ -699,7 +739,6 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
             if command_receive == 'detect':
                 index_garbage += 1
                 # 更改屏幕 显示在分类
-                command = f''
                 command_display = f'classifying'
                 queue_display.put(command_display)
                 start_time = time.time()
@@ -707,52 +746,44 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                 while time.time()-start_time < 0.1:
                     ret, frame = cap.read()
                     time.sleep(0.1)
-                count = 0
-                while count < 5:
-                    count += 1
-                    ret, frame = cap.read()
-                    # 裁剪图像
-                    frame = extract_region(frame)
-                    # 置信度逐级递减
-                    conf_threshold = 0.75-count*0.05
-                    start_time = time.time()
-                    cls_, confs, _, angles, centers, image, areas = model(frame, conf_threshold=conf_threshold, iou_threshold=0.5)
-                    print("本次耗时：", time.time()-start_time)
 
-                    # 单垃圾分类
-                    if index_garbage <= 100000000000000:
+                final_cls_ = []
+                final_confs = []
+                final_angles = []
+                final_centers = []
+                final_images = []
+                final_areas = []
+                command = f'Tar='
+                command_display = f''
+
+                # 单垃圾分类
+                if index_garbage <= 100:
+                    count = 0
+                    while count < 5:
+                        count += 1
+                        ret, frame = cap.read()
+                        # 置信度逐级递减
+                        conf_threshold = 0.75-count*0.05
+                        start_time = time.time()
+                        cls_, confs, _, angles, centers, image, areas = model(frame, conf_threshold=conf_threshold, iou_threshold=0.5)
+                        print("本次耗时：", time.time()-start_time)
+                        print("第一次", cls_, confs, angles, centers, areas)
+
                         if len(cls_) == 1:
-
-                            print("第一次", cls_, confs, angles, centers,areas)
                             # 继续识别一次，与上次作比较
                             ret, frame = cap.read()
                             time.sleep(0.1)
                             ret, frame = cap.read()
-                            new_cls_, new_confs, _, new_angles, new_centers, image, new_areas = model(frame, conf_threshold=conf_threshold,
+                            new_cls_, new_confs, _, new_angles, new_centers, new_image, new_areas = model(frame, conf_threshold=conf_threshold,
                                                                            iou_threshold=0.5)
                             print("第二次", new_cls_, new_confs, new_angles, new_centers, new_areas)
                             # 认为识别正确
                             if new_cls_==  cls_:
-                                # 根据类别直接丢
-                                command = f'Tar='
-                                command_display = f''
-
-                                # 有害垃圾
-                                if cls_[0] == 1 or cls_[0] == 2 or cls_[0] == 8:
-                                    command += f'q2!'
-                                    command_display += 'harmful=!'
-                                # 可回收垃圾
-                                elif cls_[0] == 5 or cls_[0] == 9:
-                                    command += f'q1!'
-                                    command_display += 'recycle=!'
-                                # 厨余垃圾
-                                elif cls_[0] == 3 or cls_[0] == 7:
-                                    command += f'q3!'
-                                    command_display += 'kitchen=!'
-                                # 其他垃圾
-                                elif cls_[0] == 4 or cls_[0] ==6:
-                                    command += f'q4!'
-                                    command_display += 'other=!'
+                                final_cls_ = cls_
+                                final_confs = confs
+                                final_angles = angles
+                                final_centers = centers
+                                final_image = image
                                 break
                             # 可采取更大模型去识别本次或其他措施
                             else:
@@ -760,66 +791,256 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                                 ret, frame = cap.read()
                                 time.sleep(0.1)
                                 ret, frame = cap.read()
-                                large_cls_, large_confs, _, large_angles, large_centers, image, large_areas = model_large(frame,
+                                large_cls_, large_confs, _, large_angles, large_centers, large_image, large_areas = model_large(frame,
                                                                                                           conf_threshold=conf_threshold,
                                                                                                           iou_threshold=0.5)
-                                print(large_cls_,large_confs,large_angles,large_centers,large_areas)
-                                # 仲裁哪次是正确的
-                                if large_cls_ == cls_ or large_cls_ == new_cls_:
-                                    print("仲裁匹配")
-                                    command = f'Tar='
-                                    command_display = f''
-                                    # 有害垃圾
-                                    if large_cls_[0] == 1 or large_cls_[0] == 2 or large_cls_[0] == 8:
-                                        command += f'q2!'
-                                        command_display += 'harmful=!'
-                                    # 可回收垃圾
-                                    elif large_cls_[0] == 5 or large_cls_[0] == 9:
-                                        command += f'q1!'
-                                        command_display += 'recycle=!'
-                                    # 厨余垃圾
-                                    elif large_cls_[0] == 3 or large_cls_[0] == 7:
-                                        command += f'q3!'
-                                        command_display += 'kitchen=!'
-                                    # 其他垃圾
-                                    elif large_cls_[0] == 4 or large_cls_[0] == 6:
-                                        command += f'q4!'
-                                        command_display += 'other=!'
+                                print("large", large_cls_,  large_confs, large_angles, large_centers, large_areas)
+                                if len(large_cls_) > 0:
+                                    # 仲裁哪次是正确的
+                                    if large_cls_ == cls_ or large_cls_ == new_cls_:
+                                        print("仲裁匹配")
+                                        final_cls_ = large_cls_
+                                        final_confs = large_confs
+                                        final_angles = large_angles
+                                        final_centers = large_centers
+                                        final_image = large_image
+                                        break
+                                    # 仲裁之后依然无法判断，投到可回收垃圾
+                                    # 仲裁之后依然无法判断, 直接为仲裁结果
+                                    else:
+                                        print("仲裁后依然无法处理")
+
+
+                                # 仲裁结果为空值，将第一次作为最终结果
+                                else:
+                                    final_cls_ = cls_
+                                    final_confs = confs
+                                    final_angles = angles
+                                    final_centers = centers
+                                    final_image = image
+
                                     break
-                                # 仲裁之后依然无法判断，投到可回收垃圾
-                                else:
-                                    print("仲裁后依然无法处理")
 
 
-                    # 双垃圾分类
-                    elif index_garbage > 10:
-                        if len(cls_) == 2:
-                            # 继续识别一次，与上次作比较
+                # 双垃圾分类
+                elif index_garbage > 10:
+                    sum_cls_ = []
+                    sum_angles = []
+                    sum_centers = []
+                    sum_confs = []
+                    sum_areas = []
+                    # 统计结果值
+                    count = 0
+                    while count < 5:
+                        count += 1
+                        ret, frame = cap.read()
+                        # 置信度逐级递减
+                        conf_threshold = 0.75 - count * 0.05
+                        start_time = time.time()
+                        cls_, confs, _, angles, centers, image, areas = model(frame, conf_threshold=conf_threshold,
+                                                                              iou_threshold=0.5)
+                        print("本次耗时：", time.time() - start_time)
+                        print(f"第{count}次", cls_, confs, angles, centers, areas)
+                        # 加入序列之中
+                        sum_cls_.extend(cls_)
+                        sum_angles.extend(angles)
+                        sum_confs.extend(confs)
+                        sum_areas.extend(areas)
+                        sum_centers.extend(centers)
+
+                    # 对统计结果进行处理
+                    group_count, grouped_indices = group_coordinates_by_threshold(sum_centers)
+
+                    if group_count == 2:
+                        final_cls_.extend(sum_cls_[grouped_indices[0][0]])
+                        final_cls_.extend(sum_cls_[grouped_indices[1][0]])
+                        final_centers.extend(sum_centers[grouped_indices[0][0]])
+                        final_centers.extend(sum_centers[grouped_indices[1][0]])
+                    # 此情况出现概率较小，选择平均置信度最高的或者次数与概率积的和
+                    elif group_count > 2:
+                        # 计算每组的权重 (概率 × 次数)
+                        weights = []
+                        for group in grouped_indices:
+                            group_weight = sum(sum_cls_[index] for index in group)  # 假设 sum_cls_ 中存储的是概率或次数
+                            weights.append(group_weight)
+
+                        # 按权重从大到小排序，取前两组
+                        sorted_indices = np.argsort(weights)[::-1]  # 从大到小排序索引
+                        top_two_groups = sorted_indices[:2]  # 取权重最大的两组索引
+
+                        # 合并前两组的数据
+                        for group_index in top_two_groups:
+                            for index in grouped_indices[group_index]:
+                                final_cls_.extend(sum_cls_[index])
+                                final_centers.extend(sum_centers[index])
+
+                    # 少于两个，尝试用大模型补充几次结果
+                    elif group_count < 2:
+                        while count < 2:
+                            count += 1
                             ret, frame = cap.read()
-                            time.sleep(0.1)
-                            ret, frame = cap.read()
-                            new_cls_, new_confs, _, new_angles, new_centers, image, new_areas = model(frame, conf_threshold=conf_threshold,
-                                                                           iou_threshold=0.5)
-                            print("第二次", new_cls_, new_confs, new_angles, new_centers, new_areas)
-                            # 认为识别正确
-                            if set(new_cls_) == set(cls_) and len(cls_) == 2 :
-                                print()
-                            # 两次不匹配，申请仲裁
-                            else:
-                                print("二次识别与一次识别矛盾")
-                                ret, frame = cap.read()
-                                time.sleep(0.1)
-                                ret, frame = cap.read()
-                                large_cls_, large_confs, _, large_angles, large_centers, image, large_areas = model_large(
-                                    frame,
-                                    conf_threshold=conf_threshold,
-                                    iou_threshold=0.5)
-                                # 仲裁结果与某次结果匹配
-                                if set(large_cls_) == set(cls_) or set(large_cls_) == set(large_cls_) and len(large_cls_) == 2 :
-                                    print()
-                                # 不匹配的结果
-                                else:
-                                    print()
+                            # 置信度逐级递减
+                            conf_threshold = 0.75 - count * 0.05
+                            start_time = time.time()
+                            cls_, confs, _, angles, centers, image, areas = model_large(frame, conf_threshold=conf_threshold,
+                                                                                  iou_threshold=0.5)
+                            print("本次耗时：", time.time() - start_time)
+                            print(f"第{count}次", cls_, confs, angles, centers, areas)
+                            # 加入序列之中
+                            sum_cls_.extend(cls_)
+                            sum_angles.extend(angles)
+                            sum_confs.extend(confs)
+                            sum_areas.extend(areas)
+                            sum_centers.extend(centers)
+                        # 根据添加后的结果进行上述操作
+                        if group_count == 2:
+                            final_cls_.extend(sum_cls_[grouped_indices[0][0]])
+                            final_cls_.extend(sum_cls_[grouped_indices[1][0]])
+                            final_centers.extend(sum_centers[grouped_indices[0][0]])
+                            final_centers.extend(sum_centers[grouped_indices[1][0]])
+                        # 此情况出现概率较小，选择平均置信度最高的或者次数与概率积的和
+                        elif group_count > 2:
+                            # 计算每组的权重 (概率 × 次数)
+                            weights = []
+                            for group in grouped_indices:
+                                group_weight = sum(sum_cls_[index] for index in group)  # 假设 sum_cls_ 中存储的是概率或次数
+                                weights.append(group_weight)
+
+                            # 按权重从大到小排序，取前两组
+                            sorted_indices = np.argsort(weights)[::-1]  # 从大到小排序索引
+                            top_two_groups = sorted_indices[:2]  # 取权重最大的两组索引
+
+                            # 合并前两组的数据
+                            for group_index in top_two_groups:
+                                for index in grouped_indices[group_index]:
+                                    final_cls_.extend(sum_cls_[index])
+                                    final_centers.extend(sum_centers[index])
+                                    final_angles.extend(sum_angles[index])
+                                    final_areas.extend(sum_areas[index])
+
+                    # if len(cls_) == 2:
+                    #     # 继续识别一次，与上次作比较
+                    #     ret, frame = cap.read()
+                    #     time.sleep(0.1)
+                    #     ret, frame = cap.read()
+                    #     new_cls_, new_confs, _, new_angles, new_centers, image, new_areas = model(frame, conf_threshold=conf_threshold,
+                    #                                                    iou_threshold=0.5)
+                    #     print("第二次", new_cls_, new_confs, new_angles, new_centers, new_areas)
+                    #     if(len(new_areas)==2):
+                    #         # 直接认为识别正确
+                    #         if set(new_cls_) == set(cls_) :
+                    #             final_cls_ = cls_
+                    #             final_confs = confs
+                    #             final_angles = confs
+                    #             final_centers = centers
+                    #             final_image = image
+                    #             break
+                    #         # 两次不匹配，申请仲裁
+                    #         else:
+                    #             print("二次识别与一次识别矛盾")
+                    #             ret, frame = cap.read()
+                    #             time.sleep(0.1)
+                    #             ret, frame = cap.read()
+                    #             large_cls_, large_confs, _, large_angles, large_centers, image, large_areas = model_large(
+                    #                 frame,
+                    #                 conf_threshold=conf_threshold,
+                    #                 iou_threshold=0.5)
+                    #             print("large",large_cls_, large_confs, large_angles,large_centers,large_areas)
+                    #
+                    #             if (len(large_cls_) ==2):
+                    #                 # 仲裁结果与某次结果匹配
+                    #                 if set(large_cls_) == set(cls_) or set(large_cls_) == set(large_cls_):
+                    #                     print()
+                    #                 # 不匹配的结果
+                    #                 else:
+                    #                     print()
+
+
+                # 最终结果处理
+                # 单垃圾
+                if index_garbage <= 100000000000000:
+                    if (len(final_cls_)==1):
+                        # 有害垃圾
+                        if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
+                            command += f'q2!'
+                            command_display += 'harmful=!'
+                        # 可回收垃圾
+                        elif final_cls_[0] == 5 or final_cls_[0]== 9:
+                            command += f'q1!'
+                            command_display += 'recycle=!'
+                        # 厨余垃圾
+                        elif final_cls_[0] == 3 or final_cls_[0] == 7:
+                            command += f'q3!'
+                            command_display += 'kitchen=!'
+                        # 其他垃圾
+                        elif final_cls_[0] or final_cls_[0] == 6:
+                            command += f'q4!'
+                            command_display += 'other=!'
+                    # 未成功识别
+                    else:
+                        print()
+                #双垃圾
+                else:
+                    # 最好结果
+                    if (len(final_cls_) == 2):
+                         # 两个种类相同，倾倒即可
+                        if final_cls_[0] ==final_cls_[1]:
+                            # 有害垃圾
+                            if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
+                                command += f'q2!'
+                                command_display += 'harmful=!'
+                            # 可回收垃圾
+                            elif final_cls_[0] == 5 or final_cls_[0] == 9:
+                                command += f'q1!'
+                                command_display += 'recycle=!'
+                            # 厨余垃圾
+                            elif final_cls_[0] == 3 or final_cls_[0] == 7:
+                                command += f'q3!'
+                                command_display += 'kitchen=!'
+                            # 其他垃圾
+                            elif final_cls_[0] or final_cls_[0] == 6:
+                                command += f'q4!'
+                                command_display += 'other=!'
+                        # 种类不同，先夹后倾倒
+                        else:
+                            if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
+                                command += f'j2x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
+                                command_display += 'harmful=!'
+                            # 可回收垃圾
+                            elif final_cls_[0] == 5 or final_cls_[0] == 9:
+                                command += f'j1x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
+                                command_display += 'recycle=!'
+                            # 厨余垃圾
+                            elif final_cls_[0] == 3 or final_cls_[0] == 7:
+                                command += f'j3x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
+                                command_display += 'kitchen=!'
+                            # 其他垃圾
+                            elif final_cls_[0] == 4 or final_cls_[0] == 6:
+                                command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
+                                command_display += 'other=!'
+                    # 夹取一个，剩下的 选择一个不同的垃圾倾倒
+                    elif (len(final_cls_) == 1):
+                        # 有害垃圾
+                        if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
+                            command += f'j2x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
+                            command_display += 'harmful=!'
+                        # 可回收垃圾
+                        elif final_cls_[0] == 5 or final_cls_[0] == 9:
+                            command += f'j1x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
+                            command_display += 'recycle=!'
+                        # 厨余垃圾
+                        elif final_cls_[0] == 3 or final_cls_[0] == 7:
+                            command += f'j3x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
+                            command_display += 'kitchen=!'
+                        # 其他垃圾
+                        elif final_cls_[0] == 4 or final_cls_[0] == 6:
+                            command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
+                            command_display += 'other=!'
+                    # 完蛋，一个没识别出来，随机倾倒吧
+                    elif (len(final_cls_) == 0):
+                        command += f'q4!'
+                        command_display += 'other=!'
+                        print()
                 # 处理未成功识的情识别
                 if (command == ""):
                     print()
