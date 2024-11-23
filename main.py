@@ -871,6 +871,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                         final_centers.append(sum_centers[grouped_indices[1][0]])
                     # 此情况出现概率较小，选择平均置信度最高的或者次数与概率积的和
                     elif group_count > 2:
+                        print("多于两个")
                         # 计算每组的权重 (概率 × 次数)
                         weights = []
                         for group in grouped_indices:
@@ -886,6 +887,8 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                             for index in grouped_indices[group_index]:
                                 final_cls_.extend(sum_cls_[index])
                                 final_centers.extend(sum_centers[index])
+                                final_angles.extend(sum_angles[index])
+                                final_areas.extend(sum_areas[index])
 
                     # 少于两个，尝试用大模型补充几次结果
                     elif group_count < 2:
@@ -908,6 +911,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                             sum_centers.extend(centers)
                         # 根据添加后的结果进行上述操作
                         if group_count == 2:
+                            print("增添后正好两个")
                             final_cls_.append(sum_cls_[grouped_indices[0][0]])
                             final_cls_.append(sum_cls_[grouped_indices[1][0]])
                             final_centers.append(sum_centers[grouped_indices[0][0]])
@@ -971,8 +975,9 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
 
 
                 # 最终结果处理
+                print("final",final_cls_,final_confs,final_angles,final_centers,final_areas)
                 # 单垃圾
-                if index_garbage <= 100000000000000:
+                if index_garbage <= 100:
                     if (len(final_cls_)==1):
                         # 有害垃圾
                         if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
