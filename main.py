@@ -650,7 +650,7 @@ def transform_point_to_rotated_coords_clockwise(point, angle=45.0):
 import numpy as np
 
 
-def group_coordinates_by_threshold(coords, threshold=20):
+def group_coordinates_by_threshold(coords, threshold=30):
     """
     按距离阈值对坐标进行分组，返回每组的索引切片。
 
@@ -872,7 +872,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                         final_angles.append(sum_angles[grouped_indices[0][0]])
                         final_angles.append(sum_angles[grouped_indices[1][0]])
                         final_areas.append(sum_areas[grouped_indices[0][0]])
-                        final_areas.append(sum_areas[grouped_indices[0][0]])
+                        final_areas.append(sum_areas[grouped_indices[1][0]])
                     # 此情况出现概率较小，选择平均置信度最高的或者次数与概率积的和
                     elif group_count > 2:
                         print("多于两个")
@@ -889,10 +889,10 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                         # 合并前两组的数据
                         for group_index in top_two_groups:
                             for index in grouped_indices[group_index]:
-                                final_cls_.extend(sum_cls_[index])
-                                final_centers.extend(sum_centers[index])
-                                final_angles.extend(sum_angles[index])
-                                final_areas.extend(sum_areas[index])
+                                final_cls_.append(sum_cls_[index])
+                                final_centers.append(sum_centers[index])
+                                final_angles.append(sum_angles[index])
+                                final_areas.append(sum_areas[index])
 
                     # 少于两个，尝试用大模型补充几次结果
                     elif group_count < 2:
@@ -907,7 +907,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                             cls_, confs, _, angles, centers, image, areas = model_large(frame, conf_threshold=conf_threshold,
                                                                                   iou_threshold=0.5)
                             print("本次耗时：", time.time() - start_time)
-                            print(f"第{count}次", cls_, confs, angles, centers, areas)
+                            print(f"large,第{count}次", cls_, confs, angles, centers, areas)
                             # 加入序列之中
                             sum_cls_.extend(cls_)
                             sum_angles.extend(angles)
@@ -924,9 +924,10 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                             final_angles.append(sum_angles[grouped_indices[0][0]])
                             final_angles.append(sum_angles[grouped_indices[1][0]])
                             final_areas.append(sum_areas[grouped_indices[0][0]])
-                            final_areas.append(sum_areas[grouped_indices[0][0]])
+                            final_areas.append(sum_areas[grouped_indices[1][0]])
                         # 此情况出现概率较小，选择平均置信度最高的或者次数与概率积的和
                         elif group_count > 2:
+                            print("增添后超过两个")
                             # 计算每组的权重 (概率 × 次数)
                             weights = []
                             for group in grouped_indices:
@@ -940,11 +941,16 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                             # 合并前两组的数据
                             for group_index in top_two_groups:
                                 for index in grouped_indices[group_index]:
-                                    final_cls_.extend(sum_cls_[index])
-                                    final_centers.extend(sum_centers[index])
-                                    final_angles.extend(sum_angles[index])
-                                    final_areas.extend(sum_areas[index])
+                                    final_cls_.append(sum_cls_[index])
+                                    final_centers.append(sum_centers[index])
+                                    final_angles.append(sum_angles[index])
+                                    final_areas.append(sum_areas[index])
 
+                        elif group_count < 2:
+                            final_cls_.extend(sum_cls_)
+                            final_centers.extend(sum_centers)
+                            final_angles.extend(sum_angles)
+                            final_areas.extend(sum_areas)
                     # if len(cls_) == 2:
                     #     # 继续识别一次，与上次作比较
                     #     ret, frame = cap.read()
