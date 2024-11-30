@@ -213,7 +213,7 @@ class YOLOv8Seg:
                         valid_indices.append(i)
             if (len(valid_indices) == 0):
                 print("面积筛选过后，已无合理值")
-                return [], [], [], [], [], im0, []
+                return [], [], [], [], [], im0, [], []
             else:
                 x_centers = ((x[valid_indices, 0] + x[valid_indices, 2]) / 2).astype(int)
                 y_centers = ((x[valid_indices, 1] + x[valid_indices, 3]) / 2).astype(int)
