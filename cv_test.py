@@ -12,6 +12,34 @@ import numpy as np
 import math
 
 
+def extract_region(image, points=[(412,30),(786,24),(794,404),(418,406)], output_size=(640, 640)):
+    """
+    从给定的图像中提取四边形区域，并将其调整为指定的输出大小。
+
+    参数:
+    - image: 要提取的图像。
+    - points: 四个坐标点 [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]，表示四边形的四个角。
+    - output_size: 提取的区域图像的输出大小 (width, height)，默认为 (640, 640)。
+
+    返回:
+    - 提取的区域图像，尺寸为指定的 output_size。
+    """
+    # 定义目标图像的四个角点，大小为指定的输出大小
+    dst_points = np.array([
+        [0, 0],
+        [output_size[0] - 1, 0],
+        [output_size[0] - 1, output_size[1] - 1],
+        [0, output_size[1] - 1]
+    ], dtype="float32")
+
+    # 计算透视变换矩阵
+    M = cv2.getPerspectiveTransform(np.array(points, dtype="float32"), dst_points)
+
+    # 应用透视变换，并调整为指定的输出大小
+    extracted_region = cv2.warpPerspective(image, M, output_size)
+
+    return extracted_region
+
 class YOLOv8Seg:
     """YOLOv8 segmentation model."""
 
@@ -47,11 +75,11 @@ class YOLOv8Seg:
             5: (0.01, 0.6),
             6: (0.01, 0.3),
             7: (0.001, 0.2),
-            8: (0.01, 0.5),
+            8: (0.01, 0.6),
             9: (0.01, 0.5),
 
         }
-        self.total_image_area = 640 * 640
+        self.total_image_area = 640 * 6400
 
     def __call__(self, im0, conf_threshold=0.4, iou_threshold=0.45, nm=32):
         """
@@ -70,6 +98,7 @@ class YOLOv8Seg:
             masks (np.ndarray): [N, H, W], output masks.
         """
         # Pre-process
+        # im0 = extract_region(im0)
         im, ratio, (pad_w, pad_h) = self.preprocess(im0)
 
         # Ort inference
@@ -590,33 +619,6 @@ def display_process(queue_display, queue_display_ser):
     root.mainloop()
 
 
-def extract_region(image, points=[(412,30),(786,24),(794,404),(418,406)], output_size=(640, 640)):
-    """
-    从给定的图像中提取四边形区域，并将其调整为指定的输出大小。
-
-    参数:
-    - image: 要提取的图像。
-    - points: 四个坐标点 [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]，表示四边形的四个角。
-    - output_size: 提取的区域图像的输出大小 (width, height)，默认为 (640, 640)。
-
-    返回:
-    - 提取的区域图像，尺寸为指定的 output_size。
-    """
-    # 定义目标图像的四个角点，大小为指定的输出大小
-    dst_points = np.array([
-        [0, 0],
-        [output_size[0] - 1, 0],
-        [output_size[0] - 1, output_size[1] - 1],
-        [0, output_size[1] - 1]
-    ], dtype="float32")
-
-    # 计算透视变换矩阵
-    M = cv2.getPerspectiveTransform(np.array(points, dtype="float32"), dst_points)
-
-    # 应用透视变换，并调整为指定的输出大小
-    extracted_region = cv2.warpPerspective(image, M, output_size)
-
-    return extracted_region
 
 def transform_point_to_rotated_coords_clockwise(point, angle=-45.0):
     """
@@ -658,12 +660,13 @@ def yolo_process(queue_display, queue_receive, queue_transmit):
     #     # time.sleep(3)
     #     # queue.put('garbage=i2+q2+i3+q19+i1+q7!')
 
-    model_path = "large.onnx"
+    model_path = "t6.onnx"
     model = YOLOv8Seg(model_path)
     model_large_path = "large.onnx"
     model_large = YOLOv8Seg(model_large_path)
     cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
-    #cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
+
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     cap.set(cv2.CAP_PROP_FOURCC, fourcc)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
@@ -676,8 +679,11 @@ def yolo_process(queue_display, queue_receive, queue_transmit):
     start_time = time.time()
     while time.time() - start_time < 0.6:
         ret, frame = cap.read()
-        cls_, confs, _, angles, centers, image, areas = model(frame, conf_threshold=0.7, iou_threshold=0.5)
-        cls_, confs, _, angles, centers, image, areas = model_large(frame, conf_threshold=0.7, iou_threshold=0.5)
+        frame = cv2.imread(r"C:\Users\zhangwnebo\Desktop\mytrain\yao\IMG_20241031_204943.jpg")
+        cls_, confs, _, angles, centers, image, areas = model(frame, conf_threshold=0.01, iou_threshold=0.05)
+        print(cls_, confs, angles, centers,areas)
+        cls_, confs, _, angles, centers, image, areas = model_large(frame, conf_threshold=0.01, iou_threshold=0.05)
+        print(cls_, confs, angles, centers,areas)
     print("ok")
     # 应该在所有的东西启动完成时，在屏幕上显示东西
 
@@ -711,8 +717,6 @@ def yolo_process(queue_display, queue_receive, queue_transmit):
                 while count < 5:
                     count += 1
                     ret, frame = cap.read()
-                    # 裁剪图像
-                    frame = extract_region(frame)
                     # 置信度逐级递减
                     conf_threshold = 0.75 - count * 0.05
                     start_time = time.time()

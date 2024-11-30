@@ -104,7 +104,7 @@ class YOLOv8Seg:
         preds = self.session.run(None, {self.session.get_inputs()[0].name: im})
 
         # Post-process
-        cls_, confs, masks, angles, centers,image,areas = self.postprocess(
+        cls_, confs, masks, angles, centers, image, areas, width = self.postprocess(
             preds,
             im0=im0,
             ratio=ratio,
@@ -114,8 +114,9 @@ class YOLOv8Seg:
             iou_threshold=iou_threshold,
             nm=nm,
         )
-
-        return cls_, confs, masks, angles, centers, image, areas  # 类别 置信度 掩码 角度 中心 图像 面积比例
+        cv2.imshow('im0', image)
+        cv2.waitKey(1)
+        return cls_, confs, masks, angles, centers, image, areas, width  # 类别 置信度 掩码 角度 中心 图像 面积比例
 
     def preprocess(self, img):
         """
@@ -219,7 +220,7 @@ class YOLOv8Seg:
                 centers = np.stack((x_centers, y_centers), axis=-1)
 
                 # Masks -> Segments(contours)
-                segments, angles = self.masks2segments(masks[valid_indices])
+                segments, angles, width = self.masks2segments(masks[valid_indices])
                 bboxes = x[valid_indices, :6]
                 im_canvas = im0.copy()
                 fixed_color = (0, 0, 255)  # Red color in BGR format
@@ -251,10 +252,11 @@ class YOLOv8Seg:
                 # Mix image
                 im0 = cv2.addWeighted(im_canvas, 0.3, im0, 0.7, 0)
                 cls_ = np.array(x[valid_indices, 5], dtype=int).tolist()
-                return cls_, x[valid_indices, 4], masks[valid_indices], angles, centers, im0, areas[valid_indices]
+
+                return cls_, x[valid_indices, 4], masks[valid_indices], angles, centers, im0, areas[valid_indices], width
 
         else:
-            return [], [], [], [], [], im0, []
+            return [], [], [], [], [], im0, [], []
     @staticmethod
     def masks2segments(masks):
         """
@@ -269,6 +271,7 @@ class YOLOv8Seg:
         """
         segments = []
         angles = []
+        short_edges = []
         for x in masks.astype("uint8"):
             c = cv2.findContours(x, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)[0]  # CHAIN_APPROX_SIMPLE
             if c:
@@ -284,15 +287,20 @@ class YOLOv8Seg:
 
             if width > height:
                 point1, point2 = box[0], box[1]
+                short_edge = height
             else:
                 point1, point2 = box[1], box[2]
+                short_edge = width
+
+                # 保存短边长度
+            short_edges.append(short_edge)
 
             slope = (point2[1] - point1[1]) / (point2[0] - point1[0]) if point2[0] != point1[0] else float('inf')
             # 计算角度（弧度转角度）
             angle = np.degrees(np.arctan(slope)) if slope != float('inf') else 90
             angles.append(angle)
             segments.append(c.astype("float32"))
-        return segments, angles
+        return segments, angles, short_edges
 
     @staticmethod
     def crop_mask(masks, boxes):
@@ -725,8 +733,8 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
     start_time = time.time()
     while time.time() - start_time < 0.2:
         ret, frame = cap.read()
-        cls_, confs, _, angles, centers, image, areas = model(frame, conf_threshold=0.7, iou_threshold=0.5)
-        cls_, confs, _, angles, centers, image, areas = model_large(frame, conf_threshold=0.7, iou_threshold=0.5)
+        cls_, confs, _, angles, centers, image, areas, width = model(frame, conf_threshold=0.7, iou_threshold=0.5)
+        cls_, confs, _, angles, centers, image, areas, width = model_large(frame, conf_threshold=0.7, iou_threshold=0.5)
 
     print("ok")
     #应该在所有的东西启动完成时，在屏幕上显示东西
@@ -763,6 +771,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                 final_centers = []
                 final_images = []
                 final_areas = []
+                final_widths = []
                 command = f'Tar='
                 command_display = f''
 
@@ -775,16 +784,16 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                         # 置信度逐级递减
                         conf_threshold = 0.75-count*0.05
                         start_time = time.time()
-                        cls_, confs, _, angles, centers, image, areas = model(frame, conf_threshold=conf_threshold, iou_threshold=0.5)
+                        cls_, confs, _, angles, centers, image, areas, width = model(frame, conf_threshold=conf_threshold, iou_threshold=0.5)
                         print("本次耗时：", time.time()-start_time)
-                        print("第一次", cls_, confs, angles, centers, areas)
+                        print("第一次", cls_, confs, angles, centers, areas, width)
 
                         if len(cls_) == 1:
                             # 继续识别一次，与上次作比较
                             ret, frame = cap.read()
                             time.sleep(0.1)
                             ret, frame = cap.read()
-                            new_cls_, new_confs, _, new_angles, new_centers, new_image, new_areas = model(frame, conf_threshold=conf_threshold,
+                            new_cls_, new_confs, _, new_angles, new_centers, new_image, new_areas, new_width = model(frame, conf_threshold=conf_threshold,
                                                                            iou_threshold=0.5)
                             print("第二次", new_cls_, new_confs, new_angles, new_centers, new_areas)
                             # 认为识别正确
@@ -801,7 +810,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                                 ret, frame = cap.read()
                                 time.sleep(0.1)
                                 ret, frame = cap.read()
-                                large_cls_, large_confs, _, large_angles, large_centers, large_image, large_areas = model_large(frame,
+                                large_cls_, large_confs, _, large_angles, large_centers, large_image, large_areas, large_width = model_large(frame,
                                                                                                           conf_threshold=conf_threshold,
                                                                                                           iou_threshold=0.5)
                                 print("large", large_cls_,  large_confs, large_angles, large_centers, large_areas)
@@ -839,6 +848,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                     sum_centers = []
                     sum_confs = []
                     sum_areas = []
+                    sum_widths = []
                     # 统计结果值
                     count = 0
                     while count < 5:
@@ -849,7 +859,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                         # 置信度逐级递减
                         conf_threshold = 0.75 - count * 0.05
                         start_time = time.time()
-                        cls_, confs, _, angles, centers, image, areas = model(frame, conf_threshold=conf_threshold,
+                        cls_, confs, _, angles, centers, image, areas, widths = model(frame, conf_threshold=conf_threshold,
                                                                               iou_threshold=0.5)
                         print("本次耗时：", time.time() - start_time)
                         print(f"第{count}次", cls_, confs, angles, centers, areas)
@@ -859,6 +869,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                         sum_confs.extend(confs)
                         sum_areas.extend(areas)
                         sum_centers.extend(centers)
+                        sum_widths.extend(widths)
                     print("sum:",sum_cls_,sum_confs,sum_angles,sum_centers,sum_areas)
                     # 对统计结果进行处理
                     group_count, grouped_indices = group_coordinates_by_threshold(sum_centers)
@@ -893,7 +904,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                                 final_centers.append(sum_centers[index])
                                 final_angles.append(sum_angles[index])
                                 final_areas.append(sum_areas[index])
-
+                                final_widths.append(sum_widths[index])
                     # 少于两个，尝试用大模型补充几次结果
                     elif group_count < 2:
                         print("少于两个")
@@ -904,7 +915,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                             # 置信度逐级递减
                             conf_threshold = 0.75 - count * 0.05
                             start_time = time.time()
-                            cls_, confs, _, angles, centers, image, areas = model_large(frame, conf_threshold=conf_threshold,
+                            cls_, confs, _, angles, centers, image, areas, widths = model_large(frame, conf_threshold=conf_threshold,
                                                                                   iou_threshold=0.5)
                             print("本次耗时：", time.time() - start_time)
                             print(f"large,第{count}次", cls_, confs, angles, centers, areas)
@@ -914,6 +925,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                             sum_confs.extend(confs)
                             sum_areas.extend(areas)
                             sum_centers.extend(centers)
+                            sum_widths.extend(widths)
                         # 根据添加后的结果进行上述操作
                         if group_count == 2:
                             print("增添后正好两个")
@@ -925,6 +937,8 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                             final_angles.append(sum_angles[grouped_indices[1][0]])
                             final_areas.append(sum_areas[grouped_indices[0][0]])
                             final_areas.append(sum_areas[grouped_indices[1][0]])
+                            final_widths.append(sum_widths[grouped_indices[0][0]])
+                            final_widths.append(sum_widths[grouped_indices[1][0]])
                         # 此情况出现概率较小，选择平均置信度最高的或者次数与概率积的和
                         elif group_count > 2:
                             print("增添后超过两个")
@@ -945,12 +959,14 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                                     final_centers.append(sum_centers[index])
                                     final_angles.append(sum_angles[index])
                                     final_areas.append(sum_areas[index])
+                                    final_widths.append(sum_widths[index])
 
                         elif group_count < 2:
                             final_cls_.extend(sum_cls_)
                             final_centers.extend(sum_centers)
                             final_angles.extend(sum_angles)
                             final_areas.extend(sum_areas)
+                            final_widths.extend(sum_widths)
                     # if len(cls_) == 2:
                     #     # 继续识别一次，与上次作比较
                     #     ret, frame = cap.read()
@@ -1182,9 +1198,9 @@ def open_serial(port, baudrate, timeout=None, retry_interval=1):
 def serial_process(queue_receive,queue_transmit,queue_display_ser):
     #握手多次发送
 
-    while True:
-        time.sleep(5)
-        queue_receive.put("detect")
+    # while True:
+    #     time.sleep(5)
+    #     queue_receive.put("detect")
     # 创建串口对象
     port = '/dev/ttyTHS1'  # 替换为你的串口号
     baudrate = 115200
