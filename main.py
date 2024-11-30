@@ -1009,7 +1009,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                 print("final",final_cls_,final_confs,final_angles,final_centers,final_areas)
                 # 单垃圾
                 if index_garbage <= 100:
-                    if (len(final_cls_)==1):
+                    if (set(final_cls_)==1):
                         # 有害垃圾
                         if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
                             command += f'q2!'
@@ -1032,7 +1032,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                 #双垃圾
                 else:
                     # 最好结果
-                    if (len(final_cls_) == 2):
+                    if (set(final_cls_) == 2):
                          # 两个种类相同，倾倒即可
                         if final_cls_[0] ==final_cls_[1]:
                             # 有害垃圾
@@ -1069,7 +1069,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                                 command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
                                 command_display += 'other=!'
                     # 夹取一个，剩下的 选择一个不同的垃圾倾倒
-                    elif (len(final_cls_) == 1):
+                    elif (set(final_cls_) == 1):
                         # 有害垃圾
                         if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
                             command += f'j2x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
@@ -1087,7 +1087,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                             command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
                             command_display += 'other=!'
                     # 完蛋，一个没识别出来，随机倾倒吧
-                    elif (len(final_cls_) == 0):
+                    elif (set(final_cls_) == 0):
                         command += f'q4!'
                         command_display += 'other=!'
                         print()
