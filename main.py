@@ -202,7 +202,7 @@ class YOLOv8Seg:
             areas = np.sum(masks, axis=(1, 2))  # Calculate areas (number of True values per mask)
             # 标准化面积为占总图片面积的比例
             areas = areas / self.total_image_area
-            valid_indices = np.where(areas <= area_threshold)[0]  # Find indices of masks that meet the area condition
+            areas = np.round(areas, 5)
             print("面积比例", areas)
             # 筛选合理的切片
             valid_indices = []
@@ -298,7 +298,16 @@ class YOLOv8Seg:
             slope = (point2[1] - point1[1]) / (point2[0] - point1[0]) if point2[0] != point1[0] else float('inf')
             # 计算角度（弧度转角度）
             angle = np.degrees(np.arctan(slope)) if slope != float('inf') else 90
-            angles.append(round(angle,1))
+            angle = angle if angle >= 0 else 90-angle
+            # 理论计算应该是 -1*angle+240
+            angle = -1*angle + 240
+            if angle > 180:
+                angle = angle-180
+            elif angle < 0:
+                angle = angle+180
+            angles.append(round(angle, 1))
+
+
             segments.append(c.astype("float32"))
         return segments, angles, short_edges
 
