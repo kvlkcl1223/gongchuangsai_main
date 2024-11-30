@@ -114,8 +114,8 @@ class YOLOv8Seg:
             iou_threshold=iou_threshold,
             nm=nm,
         )
-        cv2.imshow('im0', image)
-        cv2.waitKey(1)
+        # cv2.imshow('im0', image)
+        # cv2.waitKey(1)
         return cls_, confs, masks, angles, centers, image, areas, width  # 类别 置信度 掩码 角度 中心 图像 面积比例
 
     def preprocess(self, img):
@@ -697,7 +697,7 @@ def open_camera(try_from: int = 0, try_to: int = 10):
 
     cam = cv2.VideoCapture()
     for i in range(try_from, try_to):
-        cam.open(i)
+        cam.open(i, cv2.CAP_V4L2)
         if cam.isOpened():
             return cam, i
     raise Exception("Camera not found")
@@ -715,7 +715,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
     #     # time.sleep(3)
     #     # queue.put('garbage=i2+q2+i3+q19+i1+q7!')
 
-    model_path = "best.onnx"
+    model_path = "t6.onnx"
     model = YOLOv8Seg(model_path)
     model_large_path = "large.onnx"
     model_large = YOLOv8Seg(model_large_path)
@@ -1206,7 +1206,7 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
     baudrate = 115200
     timeout = 1
     ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
-
+    ser.flush()
     buffer = ""
 
     while True:
@@ -1247,18 +1247,20 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                 time.sleep(0.2)  # 程序暂停一秒后重试
                 ser.close()
                 ser = serial.Serial(port, baudrate, timeout=timeout)
+                print("已重新打开")
             except serial.SerialException as e:
                 print(f"SerialException occurred: {e}")
                 print("Attempting to reinitialize the serial port...")
                 time.sleep(0.2)  # 程序暂停一秒后重试
                 ser.close()
                 ser = serial.Serial(port, baudrate, timeout=timeout)
+                print("已重新打开")
             except Exception as e:
                 print(f"Unexpected error: {e}")
                 time.sleep(0.2)  # 程序暂停一秒后重试
                 ser.close()
                 ser = serial.Serial(port, baudrate, timeout=timeout)
-
+                print("已重新打开")
         if not queue_transmit.empty():
             data_to_send = queue_transmit.get()
             try:
