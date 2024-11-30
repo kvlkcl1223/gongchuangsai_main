@@ -870,10 +870,10 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                         sum_areas.extend(areas)
                         sum_centers.extend(centers)
                         sum_widths.extend(widths)
-                    print("sum:",sum_cls_,sum_confs,sum_angles,sum_centers,sum_areas)
+                    print("sum:", sum_cls_, sum_confs, sum_angles, sum_centers, sum_areas)
                     # 对统计结果进行处理
                     group_count, grouped_indices = group_coordinates_by_threshold(sum_centers)
-                    print("数量", group_count,"索引",grouped_indices)
+                    print("数量", group_count, "索引",grouped_indices)
                     if group_count == 2:
 
                         final_cls_.append(sum_cls_[grouped_indices[0][0]])
@@ -899,12 +899,17 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
 
                         # 合并前两组的数据
                         for group_index in top_two_groups:
-                            for index in grouped_indices[group_index]:
-                                final_cls_.append(sum_cls_[index])
-                                final_centers.append(sum_centers[index])
-                                final_angles.append(sum_angles[index])
-                                final_areas.append(sum_areas[index])
-                                final_widths.append(sum_widths[index])
+                            final_cls_.append(sum_cls_[group_index[0]])
+                            final_centers.append(sum_centers[group_index[0]])
+                            final_angles.append(sum_angles[group_index[0]])
+                            final_areas.append(sum_areas[group_index[0]])
+                            final_widths.append(sum_widths[group_index[0]])
+                            # for index in grouped_indices[group_index]:
+                            #     final_cls_.append(sum_cls_[index])
+                            #     final_centers.append(sum_centers[index])
+                            #     final_angles.append(sum_angles[index])
+                            #     final_areas.append(sum_areas[index])
+                            #     final_widths.append(sum_widths[index])
                     # 少于两个，尝试用大模型补充几次结果
                     elif group_count < 2:
                         print("少于两个")
@@ -954,12 +959,11 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
 
                             # 合并前两组的数据
                             for group_index in top_two_groups:
-                                for index in grouped_indices[group_index]:
-                                    final_cls_.append(sum_cls_[index])
-                                    final_centers.append(sum_centers[index])
-                                    final_angles.append(sum_angles[index])
-                                    final_areas.append(sum_areas[index])
-                                    final_widths.append(sum_widths[index])
+                                final_cls_.append(sum_cls_[group_index[0]])
+                                final_centers.append(sum_centers[group_index[0]])
+                                final_angles.append(sum_angles[group_index[0]])
+                                final_areas.append(sum_areas[group_index[0]])
+                                final_widths.append(sum_widths[group_index[0]])
 
                         elif group_count < 2:
                             final_cls_.extend(sum_cls_)
@@ -1006,10 +1010,10 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
 
 
                 # 最终结果处理
-                print("final",final_cls_,final_confs,final_angles,final_centers,final_areas)
+                print("final", final_cls_,final_confs,final_angles,final_centers,final_areas)
                 # 单垃圾
                 if index_garbage <= 100:
-                    if (set(final_cls_)==1):
+                    if (len(final_cls_)==1):
                         # 有害垃圾
                         if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
                             command += f'q2!'
@@ -1031,8 +1035,9 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                         print()
                 #双垃圾
                 else:
+
                     # 最好结果
-                    if (set(final_cls_) == 2):
+                    if (len(final_cls_) == 2):
                          # 两个种类相同，倾倒即可
                         if final_cls_[0] ==final_cls_[1]:
                             # 有害垃圾
@@ -1069,25 +1074,25 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                                 command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
                                 command_display += 'other=!'
                     # 夹取一个，剩下的 选择一个不同的垃圾倾倒
-                    elif (set(final_cls_) == 1):
+                    elif (len(final_cls_) == 1):
                         # 有害垃圾
                         if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
-                            command += f'j2x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
+                            command += f'j2x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}'
                             command_display += 'harmful=!'
                         # 可回收垃圾
                         elif final_cls_[0] == 5 or final_cls_[0] == 9:
-                            command += f'j1x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
+                            command += f'j1x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}'
                             command_display += 'recycle=!'
                         # 厨余垃圾
                         elif final_cls_[0] == 3 or final_cls_[0] == 7:
-                            command += f'j3x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
+                            command += f'j3x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}'
                             command_display += 'kitchen=!'
                         # 其他垃圾
                         elif final_cls_[0] == 4 or final_cls_[0] == 6:
-                            command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
+                            command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}'
                             command_display += 'other=!'
                     # 完蛋，一个没识别出来，随机倾倒吧
-                    elif (set(final_cls_) == 0):
+                    elif (len(final_cls_) == 0):
                         command += f'q4!'
                         command_display += 'other=!'
                         print()
