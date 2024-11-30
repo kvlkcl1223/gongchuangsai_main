@@ -298,7 +298,7 @@ class YOLOv8Seg:
             slope = (point2[1] - point1[1]) / (point2[0] - point1[0]) if point2[0] != point1[0] else float('inf')
             # 计算角度（弧度转角度）
             angle = np.degrees(np.arctan(slope)) if slope != float('inf') else 90
-            angles.append(angle)
+            angles.append(round(angle,1))
             segments.append(c.astype("float32"))
         return segments, angles, short_edges
 
@@ -1171,7 +1171,7 @@ def uart_transition(com, ser_ttyAMA4):
 
     while ser_ttyAMA4.in_waiting == 0:
         ser_ttyAMA4.flushInput()
-        ser_ttyAMA4.write(com.encode('ascii'))
+        ser_ttyAMA4.write(com)
         time.sleep(0.03)
         serial_cnt += 1
 
@@ -1266,18 +1266,20 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                 ser.close()
                 ser = serial.Serial(port, baudrate, timeout=timeout)
                 print("已重新打开")
-        if not queue_transmit.empty():
-            data_to_send = queue_transmit.get()
-            try:
-                uart_transition(data_to_send.encode('ascii'), ser)
-            except Exception as e:
-                print(f"Unexpected error: {e}")
-                time.sleep(0.2)  # 程序暂停一秒后重试
-                ser.close()
-                ser = serial.Serial(port, baudrate, timeout=timeout)
-                uart_transition(data_to_send.encode('ascii'), ser)
-            print(f"发送的数据: {data_to_send}")
-        time.sleep(0.1)
+
+
+            if not queue_transmit.empty():
+                data_to_send = queue_transmit.get()
+                try:
+                    uart_transition(data_to_send.encode('ascii'), ser)
+                except Exception as e:
+                    print(f"Unexpected error: {e}")
+                    time.sleep(0.2)  # 程序暂停一秒后重试
+                    ser.close()
+                    ser = serial.Serial(port, baudrate, timeout=timeout)
+                    uart_transition(data_to_send.encode('ascii'), ser)
+                print(f"发送的数据: {data_to_send}")
+            time.sleep(0.1)
 
 
 if __name__ == '__main__':
