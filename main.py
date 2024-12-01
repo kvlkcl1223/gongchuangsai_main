@@ -1283,13 +1283,13 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
             if not queue_transmit.empty():
                 data_to_send = queue_transmit.get()
                 try:
-                    uart_transition(data_to_send.encode('ascii'), ser)
+                    ser.write(data_to_send.encode('ascii'))
                 except Exception as e:
                     print(f"Unexpected error: {e}")
                     time.sleep(0.2)  # 程序暂停一秒后重试
                     ser.close()
                     ser = serial.Serial(port, baudrate, timeout=timeout)
-                    uart_transition(data_to_send.encode('ascii'), ser)
+                    ser.write(data_to_send.encode('ascii'))
 
             time.sleep(0.1)
 
