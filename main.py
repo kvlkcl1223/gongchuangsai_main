@@ -1185,12 +1185,10 @@ def uart_transition(com, ser_ttyAMA4):
     while ser_ttyAMA4.in_waiting == 0:
         ser_ttyAMA4.flushInput()
         ser_ttyAMA4.write(com)
-        time.sleep(0.03)
+        time.sleep(0.1)
         serial_cnt += 1
 
         if serial_cnt > 5:
-            serial_cnt = 0
-            print("serial_cnt=", serial_cnt)
             break
 
 
