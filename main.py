@@ -456,17 +456,29 @@ class SimpleApp:
 
 
         # 某次垃圾分类的标签 标号 名字 数量 是否成功
-        self.label_index = tk.Label(root, text="index:   ", font=("Arial", 32), bg='lightblue')
+        self.label_index = tk.Label(root, text="   ", font=("Arial", 32), bg='lightblue')
         self.label_index.place(relx=0.2, rely=0.5, anchor='center')
 
-        self.label_name = tk.Label(root, text="name:   ", font=("Arial", 32), bg='lightblue')
+        self.label_name = tk.Label(root, text="   ", font=("Arial", 32), bg='lightblue')
         self.label_name.place(relx=0.4, rely=0.5, anchor='center')
 
-        self.label_quantity = tk.Label(root, text="quantity:   ", font=("Arial", 32), bg='lightblue')
+        self.label_quantity = tk.Label(root, text="   ", font=("Arial", 32), bg='lightblue')
         self.label_quantity.place(relx=0.6, rely=0.5, anchor='center')
 
-        self.label_success = tk.Label(root, text="state:   ", font=("Arial", 32), bg='lightblue')
+        self.label_success = tk.Label(root, text="   ", font=("Arial", 32), bg='lightblue')
         self.label_success.place(relx=0.8, rely=0.5, anchor='center')
+
+        # self.label_index = tk.Label(root, text="index:   ", font=("Arial", 32), bg='lightblue')
+        # self.label_index.place(relx=0.2, rely=0.5, anchor='center')
+        #
+        # self.label_name = tk.Label(root, text="name:   ", font=("Arial", 32), bg='lightblue')
+        # self.label_name.place(relx=0.4, rely=0.5, anchor='center')
+        #
+        # self.label_quantity = tk.Label(root, text="quantity:   ", font=("Arial", 32), bg='lightblue')
+        # self.label_quantity.place(relx=0.6, rely=0.5, anchor='center')
+        #
+        # self.label_success = tk.Label(root, text="state:   ", font=("Arial", 32), bg='lightblue')
+        # self.label_success.place(relx=0.8, rely=0.5, anchor='center')
 
         # self.entry = tk.Entry(root, font=("Arial", 24))
         # self.entry.place(relx=0.5, rely=0.2, anchor='center')
@@ -502,10 +514,14 @@ class SimpleApp:
         self.label_recyclable.config(text=f"recyclable: {self.quantity_recyclable}")
         self.label_kitchen.config(text=f"kitchen: {self.quantity_kitchen}")
         self.label_other.config(text=f"other: {self.quantity_other}")
-        self.label_index.config(text=f"index: {self.index}")
-        self.label_name.config(text=f"name: {self.name}")
-        self.label_quantity.config(text=f"quantity: {self.quantity}")
-        self.label_success.config(text=f"state: {self.state}")
+        # self.label_index.config(text=f"index: {self.index}")
+        # self.label_name.config(text=f"name: {self.name}")
+        # self.label_quantity.config(text=f"quantity: {self.quantity}")
+        # self.label_success.config(text=f"state: {self.state}")
+        self.label_index.config(text=f"{self.index}")
+        self.label_name.config(text=f"{self.name}")
+        self.label_quantity.config(text=f"{self.quantity}")
+        self.label_success.config(text=f"{self.state}")
 
     def exit_app(self):
         self.root.quit()  # 退出应用
@@ -593,14 +609,14 @@ def display_process(queue_display,queue_display_ser):
                 if frame_header == "full":
                     app.full_display()
                 elif frame_header == "success":
-                    app.state = "success"
-                    if app.last_frame_header == "harmful":
+                    app.state = "OK!"
+                    if app.last_frame_header == "有害垃圾":
                         app.quantity_harmful += 1
-                    elif app.last_frame_header == "recyclable":
+                    elif app.last_frame_header == "可回收垃圾":
                         app.quantity_recyclable += 1
-                    elif app.last_frame_header == "kitchen":
+                    elif app.last_frame_header == "厨余垃圾":
                         app.quantity_kitchen += 1
-                    elif app.last_frame_header == "other":
+                    elif app.last_frame_header == "其他垃圾":
                         app.quantity_other += 1
                 app.update_display()
 
@@ -1030,19 +1046,19 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                         # 有害垃圾
                         if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
                             command += f'q2!'
-                            command_display += 'harmful=!'
+                            command_display += '有害垃圾=!'
                         # 可回收垃圾
                         elif final_cls_[0] == 5 or final_cls_[0]== 9:
                             command += f'q1!'
-                            command_display += 'recycle=!'
+                            command_display += '可回收垃圾=!'
                         # 厨余垃圾
                         elif final_cls_[0] == 3 or final_cls_[0] == 7:
                             command += f'q3!'
-                            command_display += 'kitchen=!'
+                            command_display += '厨余垃圾=!'
                         # 其他垃圾
                         elif final_cls_[0] or final_cls_[0] == 6:
                             command += f'q4!'
-                            command_display += 'other=!'
+                            command_display += '其他垃圾=!'
                     # 未成功识别
                     else:
                         print()
@@ -1056,58 +1072,58 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                             # 有害垃圾
                             if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
                                 command += f'q2!'
-                                command_display += 'harmful=!'
+                                command_display += '有害垃圾=!'
                             # 可回收垃圾
                             elif final_cls_[0] == 5 or final_cls_[0] == 9:
                                 command += f'q1!'
-                                command_display += 'recycle=!'
+                                command_display += '可回收垃圾=!'
                             # 厨余垃圾
                             elif final_cls_[0] == 3 or final_cls_[0] == 7:
                                 command += f'q3!'
-                                command_display += 'kitchen=!'
+                                command_display += '厨余垃圾=!'
                             # 其他垃圾
                             elif final_cls_[0] or final_cls_[0] == 6:
                                 command += f'q4!'
-                                command_display += 'other=!'
+                                command_display += '其他垃圾=!'
                         # 种类不同，先夹后倾倒
                         else:
                             if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
                                 command += f'j2x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
-                                command_display += 'harmful=!'
+                                command_display += '有害垃圾=!'
                             # 可回收垃圾
                             elif final_cls_[0] == 5 or final_cls_[0] == 9:
                                 command += f'j1x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
-                                command_display += 'recycle=!'
+                                command_display += '可回收垃圾=!'
                             # 厨余垃圾
                             elif final_cls_[0] == 3 or final_cls_[0] == 7:
                                 command += f'j3x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
-                                command_display += 'kitchen=!'
+                                command_display += '厨余垃圾=!'
                             # 其他垃圾
                             elif final_cls_[0] == 4 or final_cls_[0] == 6:
                                 command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
-                                command_display += 'other=!'
+                                command_display += '其他垃圾=!'
                     # 夹取一个，剩下的 选择一个不同的垃圾倾倒
                     elif (len(final_cls_) == 1):
                         # 有害垃圾
                         if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
                             command += f'j2x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
-                            command_display += 'harmful=!'
+                            command_display += '有害垃圾=!'
                         # 可回收垃圾
                         elif final_cls_[0] == 5 or final_cls_[0] == 9:
                             command += f'j1x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
-                            command_display += 'recycle=!'
+                            command_display += '可回收垃圾=!'
                         # 厨余垃圾
                         elif final_cls_[0] == 3 or final_cls_[0] == 7:
                             command += f'j3x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
-                            command_display += 'kitchen=!'
+                            command_display += '厨余垃圾=!'
                         # 其他垃圾
                         elif final_cls_[0] == 4 or final_cls_[0] == 6:
                             command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
-                            command_display += 'other=!'
+                            command_display += '其他垃圾=!'
                     # 完蛋，一个没识别出来，随机倾倒吧
                     elif (len(final_cls_) == 0):
                         command += f'q4!'
-                        command_display += 'other=!'
+                        command_display += '其他垃圾=!'
                         print()
                 # 处理未成功识的情识别
                 if (command == ""):
