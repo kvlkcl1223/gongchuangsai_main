@@ -979,11 +979,11 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                                 final_widths.append(sum_widths[group_index[0]])
 
                         elif group_count < 2:
-                            final_cls_.extend(sum_cls_[0])
-                            final_centers.extend(sum_centers[0])
-                            final_angles.extend(sum_angles[0])
-                            final_areas.extend(sum_areas[0])
-                            final_widths.extend(sum_widths[0])
+                            final_cls_.append(sum_cls_[0])
+                            final_centers.append(sum_centers[0])
+                            final_angles.append(sum_angles[0])
+                            final_areas.append(sum_areas[0])
+                            final_widths.append(sum_widths[0])
                     # if len(cls_) == 2:
                     #     # 继续识别一次，与上次作比较
                     #     ret, frame = cap.read()
