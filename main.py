@@ -1290,7 +1290,7 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                     ser.close()
                     ser = serial.Serial(port, baudrate, timeout=timeout)
                     uart_transition(data_to_send.encode('ascii'), ser)
-                print(f"发送的数据: {data_to_send}")
+
             time.sleep(0.1)
 
 
