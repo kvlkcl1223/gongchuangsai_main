@@ -95,7 +95,9 @@ class YOLOv8Seg:
             segments (List): list of segments.
             masks (np.ndarray): [N, H, W], output masks.
         """
-
+        if im0.size == 0:
+            print("Error: Input image has no content!")
+            return [], [], [], [], [], im0, [], []
         # Pre-process
         im0 = extract_region(im0)
         im, ratio, (pad_w, pad_h) = self.preprocess(im0)
@@ -428,7 +430,7 @@ class SimpleApp:
         self.names = ["harmful", "recyclable", "kitchen", "other"]
         self.last_frame_header = ''
         self.full_image_path = "full.png"
-        self.video_path = "10643243.mp4"
+        self.video_path = "video.mp4"
         # 加载背景图片
         self.background_image = Image.open('background.jpg')  # 替换为你的背景图片路径
         self.background_image = self.background_image.resize(
@@ -940,6 +942,8 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                             sum_areas.extend(areas)
                             sum_centers.extend(centers)
                             sum_widths.extend(widths)
+                            group_count, grouped_indices = group_coordinates_by_threshold(sum_centers)
+                            print("增添后","数量", group_count, "索引", grouped_indices)
                         # 根据添加后的结果进行上述操作
                         if group_count == 2:
                             print("增添后正好两个")
@@ -975,11 +979,11 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                                 final_widths.append(sum_widths[group_index[0]])
 
                         elif group_count < 2:
-                            final_cls_.extend(sum_cls_)
-                            final_centers.extend(sum_centers)
-                            final_angles.extend(sum_angles)
-                            final_areas.extend(sum_areas)
-                            final_widths.extend(sum_widths)
+                            final_cls_.extend(sum_cls_[0])
+                            final_centers.extend(sum_centers[0])
+                            final_angles.extend(sum_angles[0])
+                            final_areas.extend(sum_areas[0])
+                            final_widths.extend(sum_widths[0])
                     # if len(cls_) == 2:
                     #     # 继续识别一次，与上次作比较
                     #     ret, frame = cap.read()
