@@ -1300,13 +1300,14 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                 data_to_send = queue_transmit.get()
                 try:
                     ser.write(data_to_send.encode('ascii'))
+                    print("发送的数据",data_to_send.encode('ascii'))
                 except Exception as e:
                     print(f"Unexpected error: {e}")
                     time.sleep(0.2)  # 程序暂停一秒后重试
                     ser.close()
                     ser = serial.Serial(port, baudrate, timeout=timeout)
                     ser.write(data_to_send.encode('ascii'))
-
+                    print("发送的数据", data_to_send.encode('ascii'))
             time.sleep(0.1)
 
 
