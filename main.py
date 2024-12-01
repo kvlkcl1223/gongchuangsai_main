@@ -739,7 +739,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
     # 角度偏差量
     angle_error = 0
     # 垃圾轮数计数
-    index_garbage = 200
+    index_garbage = 0
     # 预热模型
     start_time = time.time()
     while time.time() - start_time < 0.2:
