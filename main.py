@@ -302,7 +302,7 @@ class YOLOv8Seg:
             angle = np.degrees(np.arctan(slope)) if slope != float('inf') else 90
             angle = angle if angle >= 0 else 90-angle
             # 理论计算应该是 -1*angle+240
-            angle = -1*angle + 240
+            angle = -1*angle + 240-90
             if angle > 180:
                 angle = angle-180
             elif angle < 0:
