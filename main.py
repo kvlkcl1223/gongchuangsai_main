@@ -1090,19 +1090,19 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                     elif (len(final_cls_) == 1):
                         # 有害垃圾
                         if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
-                            command += f'j2x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}'
+                            command += f'j2x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
                             command_display += 'harmful=!'
                         # 可回收垃圾
                         elif final_cls_[0] == 5 or final_cls_[0] == 9:
-                            command += f'j1x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}'
+                            command += f'j1x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
                             command_display += 'recycle=!'
                         # 厨余垃圾
                         elif final_cls_[0] == 3 or final_cls_[0] == 7:
-                            command += f'j3x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}'
+                            command += f'j3x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
                             command_display += 'kitchen=!'
                         # 其他垃圾
                         elif final_cls_[0] == 4 or final_cls_[0] == 6:
-                            command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}'
+                            command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
                             command_display += 'other=!'
                     # 完蛋，一个没识别出来，随机倾倒吧
                     elif (len(final_cls_) == 0):
