@@ -592,6 +592,8 @@ def display_process(queue_display,queue_display_ser):
                 data = header_match.group(2).strip()
                 if frame_header == "fail":
                     app.state = "fail"
+                elif frame_header == "ok":
+                    print()
                 else:
                     app.index += 1
                     app.name = frame_header
@@ -752,6 +754,8 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
     cap.set(cv2.CAP_PROP_FOURCC, fourcc)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 960)
+    # 等待画面刷新时间
+    time_update = 0.2
     # 角度偏差量
     angle_error = 0
     # 垃圾轮数计数
@@ -807,9 +811,12 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                     count = 0
                     while count < 5:
                         count += 1
-                        ret, frame = cap.read()
                         # 置信度逐级递减
                         conf_threshold = 0.75-count*0.05
+                        start_time = time.time()
+                        while time.time() - start_time < time_update:
+                            ret, frame = cap.read()
+                        ret, frame = cap.read()
                         start_time = time.time()
                         cls_, confs, _, angles, centers, image, areas, width = model(frame, conf_threshold=conf_threshold, iou_threshold=0.5)
                         print("本次耗时：", time.time()-start_time)
@@ -817,8 +824,9 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
 
                         if len(cls_) == 1:
                             # 继续识别一次，与上次作比较
-                            ret, frame = cap.read()
-                            time.sleep(0.1)
+                            start_time = time.time()
+                            while time.time()-start_time < time_update:
+                                ret, frame = cap.read()
                             ret, frame = cap.read()
                             new_cls_, new_confs, _, new_angles, new_centers, new_image, new_areas, new_width = model(frame, conf_threshold=conf_threshold,
                                                                            iou_threshold=0.5)
@@ -834,8 +842,9 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                             # 可采取更大模型去识别本次或其他措施
                             else:
                                 print("二次识别与一次识别矛盾")
-                                ret, frame = cap.read()
-                                time.sleep(0.1)
+                                start_time = time.time()
+                                while time.time() - start_time < time_update:
+                                    ret, frame = cap.read()
                                 ret, frame = cap.read()
                                 large_cls_, large_confs, _, large_angles, large_centers, large_image, large_areas, large_width = model_large(frame,
                                                                                                           conf_threshold=conf_threshold,
@@ -880,8 +889,9 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                     count = 0
                     while count < 5:
                         count += 1
-                        ret, frame = cap.read()
-                        time.sleep(0.1)
+                        start_time = time.time()
+                        while time.time() - start_time < time_update:
+                            ret, frame = cap.read()
                         ret, frame = cap.read()
                         # 置信度逐级递减
                         conf_threshold = 0.75 - count * 0.05
@@ -943,6 +953,9 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                         count = 0
                         while count < 2:
                             count += 1
+                            start_time = time.time()
+                            while time.time() - start_time < time_update:
+                                ret, frame = cap.read()
                             ret, frame = cap.read()
                             # 置信度逐级递减
                             conf_threshold = 0.75 - count * 0.05
