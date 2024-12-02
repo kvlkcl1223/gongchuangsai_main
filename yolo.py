@@ -329,8 +329,8 @@ def extract_region(image, points, output_size=(640, 640)):
 cap = cv2.VideoCapture(0,cv2.CAP_V4L2)
 fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 cap.set(cv2.CAP_PROP_FOURCC, fourcc)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 960)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 while True:
     ret, frame = cap.read()
     image = extract_region(frame, points = [(376,24),(844,4),(864,470),(398,490)])
