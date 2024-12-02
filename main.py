@@ -1094,7 +1094,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
 
 
 
-                        elif group_count < 2:
+                        elif group_count < 2 and group_count >0:
                             final_cls_.append(sum_cls_[0])
                             final_centers.append(sum_centers[0])
                             final_angles.append(sum_angles[0])
@@ -1350,9 +1350,9 @@ def open_serial(port, baudrate, timeout=None, retry_interval=1):
 def serial_process(queue_receive,queue_transmit,queue_display_ser):
     #握手多次发送
 
-    while True:
-        time.sleep(5)
-        queue_receive.put("detect")
+    # while True:
+    #     time.sleep(5)
+    #     queue_receive.put("detect")
     # 创建串口对象
     port = '/dev/ttyTHS1'  # 替换为你的串口号
     baudrate = 115200
