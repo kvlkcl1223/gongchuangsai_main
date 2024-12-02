@@ -1315,14 +1315,14 @@ def uart_transition(com, ser_ttyAMA4):
         ser_ttyAMA4.flushInput()
         ser_ttyAMA4.write(com)
         print("发送的数据", com)
-        time.sleep(0.3)
+        time.sleep(0.02)
         serial_cnt += 1
 
         if serial_cnt > 5:
             break
     try:
         received_data = ser_ttyAMA4.readline().decode('ascii').strip()
-        print("received_data_command", received_data)
+        print("data_to_discard", received_data)
     except UnicodeDecodeError:
         # 如果解码失败，处理异常
         print("Decoding error: received data contains invalid ASCII characters.")
