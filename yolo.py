@@ -333,7 +333,7 @@ cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 while True:
     ret, frame = cap.read()
-    image = extract_region(frame, points = [(100, 0), (400, 250), (100, 400), (0, 250)])
+    image = extract_region(frame, points = [(376,24),(844,4),(864,470),(398,490)])
     cv2.imshow('frame', frame)
     cv2.imshow('image', image)
     cv2.waitKey(1)
