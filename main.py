@@ -812,8 +812,8 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
     model = YOLOv8Seg(model_path)
     model_large_path = "large.onnx"
     model_large = YOLOv8Seg(model_large_path)
-    # cap, i = open_camera()
-    cap = cv2.VideoCapture(0)
+    cap, i = open_camera()
+    # cap = cv2.VideoCapture(0)
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     cap.set(cv2.CAP_PROP_FOURCC, fourcc)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
