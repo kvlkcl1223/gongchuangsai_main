@@ -419,9 +419,13 @@ class SimpleApp:
         # self.root.title("美化的应用")
         self.root.attributes('-fullscreen', True)
         self.index = 0
+        self.index_double = ""
         self.name = ""
+        self.name_double = ""
         self.quantity = 1
+        self.quantity_double = ""
         self.state = ""
+        self.state_double = ""
         self.flag_start = 0
         self.quantity_harmful = 0
         self.quantity_recyclable = 0
@@ -429,6 +433,7 @@ class SimpleApp:
         self.quantity_other = 0
         self.names = ["harmful", "recyclable", "kitchen", "other"]
         self.last_frame_header = ''
+        self.last_frame_header_double = ''
         self.full_image_path = "full.png"
         self.video_path = "video.mp4"
         # 加载背景图片
@@ -442,16 +447,16 @@ class SimpleApp:
         self.background_label.place(x=0, y=0, relwidth=1, relheight=1)  # 设置背景填满整个窗口
 
         #垃圾总数标签
-        self.label_harmful = tk.Label(root, text="harmful:   ", font=("Arial", 32), bg='lightblue')
+        self.label_harmful = tk.Label(root, text="有害垃圾:0   ", font=("Arial", 32), bg='lightblue')
         self.label_harmful.place(relx=0.2, rely=0.2, anchor='center')
 
-        self.label_recyclable = tk.Label(root, text="recyclable:   ", font=("Arial", 32), bg='lightblue')
+        self.label_recyclable = tk.Label(root, text="可回收垃圾:0   ", font=("Arial", 32), bg='lightblue')
         self.label_recyclable.place(relx=0.4, rely=0.2, anchor='center')
 
-        self.label_kitchen = tk.Label(root, text="kitchen:   ", font=("Arial", 32), bg='lightblue')
+        self.label_kitchen = tk.Label(root, text="厨余垃圾:0   ", font=("Arial", 32), bg='lightblue')
         self.label_kitchen.place(relx=0.6, rely=0.2, anchor='center')
 
-        self.label_other = tk.Label(root, text="other:   ", font=("Arial", 32), bg='lightblue')
+        self.label_other = tk.Label(root, text="其他垃圾:0   ", font=("Arial", 32), bg='lightblue')
         self.label_other.place(relx=0.8, rely=0.2, anchor='center')
 
 
@@ -467,6 +472,19 @@ class SimpleApp:
 
         self.label_success = tk.Label(root, text="   ", font=("Arial", 32), bg='lightblue')
         self.label_success.place(relx=0.8, rely=0.5, anchor='center')
+
+        # 双次垃圾分类的标签 标号 名字 数量 是否成功
+        self.label_index_double = tk.Label(root, text="   ", font=("Arial", 32), bg='lightblue')
+        self.label_index_double.place(relx=0.2, rely=0.7, anchor='center')
+
+        self.label_name_double = tk.Label(root, text="   ", font=("Arial", 32), bg='lightblue')
+        self.label_name_double.place(relx=0.4, rely=0.7, anchor='center')
+
+        self.label_quantity_double = tk.Label(root, text="   ", font=("Arial", 32), bg='lightblue')
+        self.label_quantity_double.place(relx=0.6, rely=0.7, anchor='center')
+
+        self.label_success_double = tk.Label(root, text="   ", font=("Arial", 32), bg='lightblue')
+        self.label_success_double.place(relx=0.8, rely=0.7, anchor='center')
 
         # self.label_index = tk.Label(root, text="index:   ", font=("Arial", 32), bg='lightblue')
         # self.label_index.place(relx=0.2, rely=0.5, anchor='center')
@@ -495,11 +513,6 @@ class SimpleApp:
 
         # 显示图片
         self.image_label = Label(root)
-        # self.display_image('E:\波的照片集\sum\DSC_2356.jpg')  # 替换为你的图片文件路径
-
-        # # 调整层次
-        # self.video_label.lower()  # 确保视频在图片下层
-        # self.image_label.tkraise()  # 确保图片在视频上层
         self.background_label.lower()
 
     # 初始化参数
@@ -510,19 +523,22 @@ class SimpleApp:
         self.state = ""
 
     def update_display(self):
-        self.label_harmful.config(text=f"harmful: {self.quantity_harmful}")
-        self.label_recyclable.config(text=f"recyclable: {self.quantity_recyclable}")
-        self.label_kitchen.config(text=f"kitchen: {self.quantity_kitchen}")
-        self.label_other.config(text=f"other: {self.quantity_other}")
+        self.label_harmful.config(text=f"有害垃圾: {self.quantity_harmful}")
+        self.label_recyclable.config(text=f"可回收垃圾: {self.quantity_recyclable}")
+        self.label_kitchen.config(text=f"厨余垃圾: {self.quantity_kitchen}")
+        self.label_other.config(text=f"其他垃圾: {self.quantity_other}")
         # self.label_index.config(text=f"index: {self.index}")
         # self.label_name.config(text=f"name: {self.name}")
         # self.label_quantity.config(text=f"quantity: {self.quantity}")
         # self.label_success.config(text=f"state: {self.state}")
-        self.label_index.config(text=f"{self.index}")
-        self.label_name.config(text=f"{self.name}")
-        self.label_quantity.config(text=f"{self.quantity}")
-        self.label_success.config(text=f"{self.state}")
-
+        self.label_index.config(text=f"{self.index} ")
+        self.label_name.config(text=f"{self.name} ")
+        self.label_quantity.config(text=f"{self.quantity} ")
+        self.label_success.config(text=f"{self.state} ")
+        self.label_index_double.config(text=f"{self.index_double} ")
+        self.label_name_double.config(text=f"{self.name_double} ")
+        self.label_quantity_double.config(text=f"{self.quantity_double} ")
+        self.label_success_double.config(text=f"{self.state_double} ")
     def exit_app(self):
         self.root.quit()  # 退出应用
 
@@ -586,21 +602,60 @@ def display_process(queue_display,queue_display_ser):
             # app.update_label(message)  # 更新标签
             app.flag_start = 0
             app.video_label.destroy()
-            header_match = re.match(r'^(.*?)=(.*?)!$', message)
-            if header_match:
-                frame_header = header_match.group(1).strip()
-                data = header_match.group(2).strip()
-                if frame_header == "fail":
-                    app.state = "fail"
-                elif frame_header == "ok":
-                    print()
-                else:
+            # 使用正则表达式提取多个 key=value! 对
+            pattern = r'(\w+)=([\w\W]*?)!'
+            matches = re.findall(pattern, message)
+            if matches:
+                if len(matches) ==1:
+                    for key, value in matches:
+                        key = key.strip()
+                        value = value.strip()
+
+                        # 根据解析到的 key 和 value 处理逻辑
+                        if key == "fail":
+                            app.state = "fail"
+                        elif key == "ok":
+                            print()
+                        else:
+                            app.index += 1
+                            app.name = key
+                            app.state = "classifying"
+                            app.last_frame_header = key
+                            app.name_double = ""
+                            app.quantity_double = ""
+                            app.last_frame_header = ""
+                            app.index_double = ""
+                            app.state_double = ""
+                elif len(matches) == 2:
                     app.index += 1
-                    app.name = frame_header
                     app.state = "classifying"
-                    app.last_frame_header = frame_header
+                    app.state_double = "classifying"
+                    key1, value1 = matches[0]
+                    key2, value2 = matches[1]
+                    if key1 == key2:
+                        app.name = key1
+                        app.quantity = 2
+                        app.last_frame_header = key1
+                        app.name_double = ""
+                        app.quantity_double = ""
+                        app.last_frame_header = ""
+                        app.index_double = ""
+                    else:
+                        app.name = key1
+                        app.quantity = 1
+                        app.last_frame_header = key1
+                        app.name_double = key2
+                        app.quantity_double = 1
+                        app.last_frame_header_double = key2
+                        app.index_double = app.index
+                    # 调用更新显示的函数
                 app.update_display()
 
+        except Exception as e:
+            time.sleep(0.05)
+
+
+        try:
             # 来自串口的命令
             # 满载以及动作完成直接由串口发送
             message = queue_display_ser.get_nowait()  # 尝试获取消息
@@ -619,6 +674,15 @@ def display_process(queue_display,queue_display_ser):
                     elif app.last_frame_header == "厨余垃圾":
                         app.quantity_kitchen += 1
                     elif app.last_frame_header == "其他垃圾":
+                        app.quantity_other += 1
+
+                    if app.last_frame_header_double == "有害垃圾":
+                        app.quantity_harmful += 1
+                    elif app.last_frame_header_double == "可回收垃圾":
+                        app.quantity_recyclable += 1
+                    elif app.last_frame_header_double == "厨余垃圾":
+                        app.quantity_kitchen += 1
+                    elif app.last_frame_header_double == "其他垃圾":
                         app.quantity_other += 1
                 app.update_display()
 
@@ -748,8 +812,8 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
     model = YOLOv8Seg(model_path)
     model_large_path = "large.onnx"
     model_large = YOLOv8Seg(model_large_path)
-    cap, i = open_camera()
-    # cap = cv2.VideoCapture(0)
+    # cap, i = open_camera()
+    cap = cv2.VideoCapture(0)
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     cap.set(cv2.CAP_PROP_FOURCC, fourcc)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
@@ -875,7 +939,28 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                                     final_image = image
 
                                     break
+                    # 连续5次未识别出任何，大模型识别一次
+                    else:
+                        start_time = time.time()
+                        while time.time() - start_time < time_update:
+                            ret, frame = cap.read()
+                        ret, frame = cap.read()
+                        large_cls_, large_confs, _, large_angles, large_centers, large_image, large_areas, large_width = model_large(
+                            frame,
+                            conf_threshold=0.5,
+                            iou_threshold=0.5)
+                        print("large", large_cls_, large_confs, large_angles, large_centers, large_areas)
+                        if len(large_cls_) > 0:
+                            # 仲裁哪次是正确的
 
+                            final_cls_ = large_cls_
+                            final_confs = large_confs
+                            final_angles = large_angles
+                            final_centers = large_centers
+                            final_image = large_image
+
+                        else:
+                            print("单垃圾,未成功识别出来")
 
                 # 双垃圾分类
                 elif index_garbage > 10:
@@ -1007,6 +1092,8 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                                 final_areas.append(sum_areas[group_index[0]])
                                 final_widths.append(sum_widths[group_index[0]])
 
+
+
                         elif group_count < 2:
                             final_cls_.append(sum_cls_[0])
                             final_centers.append(sum_centers[0])
@@ -1072,32 +1159,45 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                         elif final_cls_[0] or final_cls_[0] == 6:
                             command += f'q4!'
                             command_display += '其他垃圾=!'
-                    # 未成功识别
+                    # 未成功识别，可采取震动措施
                     else:
-                        print()
+                        command += f'q4!'
+                        command_display += '其他垃圾=!'
                 #双垃圾
                 else:
 
                     # 最好结果
                     if (len(final_cls_) == 2):
+                        # 根据面积从大到小排序
+                        # 使用 zip 打包，然后根据规则排序
+                        area_threshold = 0.4
+                        sorted_data = sorted(
+                            zip(final_areas, final_cls_, final_centers, final_angles, final_widths),
+                            key=lambda x: (x[0] > area_threshold, x[0]),  # 大于阈值的优先级低，按照面积排序
+                            reverse=True  # 面积从大到小排序（前提是未超过阈值）
+                        )
+
+                        # 解包回到各自的列表
+                        final_areas, final_cls_, final_centers, final_angles, final_widths = map(list,
+                                                                                                 zip(*sorted_data))
                          # 两个种类相同，倾倒即可
                         if final_cls_[0] ==final_cls_[1]:
                             # 有害垃圾
                             if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
                                 command += f'q2!'
-                                command_display += '有害垃圾=!'
+                                command_display += '有害垃圾=!有害垃圾=!'
                             # 可回收垃圾
                             elif final_cls_[0] == 5 or final_cls_[0] == 9:
                                 command += f'q1!'
-                                command_display += '可回收垃圾=!'
+                                command_display += '可回收垃圾=!可回收垃圾=!'
                             # 厨余垃圾
                             elif final_cls_[0] == 3 or final_cls_[0] == 7:
                                 command += f'q3!'
-                                command_display += '厨余垃圾=!'
+                                command_display += '厨余垃圾=!厨余垃圾=!'
                             # 其他垃圾
                             elif final_cls_[0] or final_cls_[0] == 6:
                                 command += f'q4!'
-                                command_display += '其他垃圾=!'
+                                command_display += '其他垃圾=!其他垃圾=!'
                         # 种类不同，先夹后倾倒
                         else:
                             if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
@@ -1115,28 +1215,28 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                             elif final_cls_[0] == 4 or final_cls_[0] == 6:
                                 command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
                                 command_display += '其他垃圾=!'
-                    # 夹取一个，剩下的 选择一个不同的垃圾倾倒
+                    # 只发现一个 夹取一个，剩下的 选择一个不同的垃圾倾倒
                     elif (len(final_cls_) == 1):
                         # 有害垃圾
                         if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
-                            command += f'j2x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
-                            command_display += '有害垃圾=!'
+                            command += f'j2x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}q4!'
+                            command_display += '有害垃圾=!其他垃圾=!'
                         # 可回收垃圾
                         elif final_cls_[0] == 5 or final_cls_[0] == 9:
-                            command += f'j1x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
-                            command_display += '可回收垃圾=!'
+                            command += f'j1x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}q4!'
+                            command_display += '可回收垃圾=!其他垃圾=!'
                         # 厨余垃圾
                         elif final_cls_[0] == 3 or final_cls_[0] == 7:
-                            command += f'j3x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
-                            command_display += '厨余垃圾=!'
+                            command += f'j3x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}q4!'
+                            command_display += '厨余垃圾=!其他垃圾=!'
                         # 其他垃圾
                         elif final_cls_[0] == 4 or final_cls_[0] == 6:
-                            command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
-                            command_display += '其他垃圾=!'
+                            command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}q3!'
+                            command_display += '其他垃圾=!厨余垃圾=!'
                     # 完蛋，一个没识别出来，随机倾倒吧
                     elif (len(final_cls_) == 0):
                         command += f'q4!'
-                        command_display += '其他垃圾=!'
+                        command_display += '其他垃圾=!其他垃圾=!'
                         print()
                 # 处理未成功识的情识别
                 if (command == ""):
@@ -1145,10 +1245,10 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                 # 信息发送到其他进程
                 if (command != ""):
                     queue_transmit.put(command)
-                    print(command)
+                    print("放入发送队列信息",command)
                 if (command_display != ""):
                     queue_display.put(command_display)
-                    print(command_display)
+                    print("放入显示队列信息",command_display)
                     # print("种类",model.classes[cls_],"置信度",confs, "角度",angles, "中心点",centers)
                     # # 先用夹子丢需要压缩的垃圾，再用夹子丢其他，最后直接倾倒
                     # if len(cls_) ==1:
@@ -1220,6 +1320,12 @@ def uart_transition(com, ser_ttyAMA4):
 
         if serial_cnt > 5:
             break
+    try:
+        received_data = ser_ttyAMA4.readline().decode('ascii').strip()
+        print("received_data_command", received_data)
+    except UnicodeDecodeError:
+        # 如果解码失败，处理异常
+        print("Decoding error: received data contains invalid ASCII characters.")
 
 
 def open_serial(port, baudrate, timeout=None, retry_interval=1):
@@ -1244,9 +1350,9 @@ def open_serial(port, baudrate, timeout=None, retry_interval=1):
 def serial_process(queue_receive,queue_transmit,queue_display_ser):
     #握手多次发送
 
-    # while True:
-    #     time.sleep(5)
-    #     queue_receive.put("detect")
+    while True:
+        time.sleep(5)
+        queue_receive.put("detect")
     # 创建串口对象
     port = '/dev/ttyTHS1'  # 替换为你的串口号
     baudrate = 115200
@@ -1265,7 +1371,7 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                         print("received_data", received_data)
                         buffer += received_data  # 将接收到的数据添加到缓冲区
 
-                        # 假设数据以特定标识符结束（例如"\n"）
+                        # 假设数据以特定标识符结束（例如"!"）
                         if '!' in buffer:
                             messages = buffer.split('!')  # 根据标识符分割消息
                             for message in messages:
@@ -1274,7 +1380,7 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                                     if message == "detect":  # 替换为实际的条件
                                         print("已发现有垃圾丢下，准备识别")
                                         queue_receive.put("detect")
-                                        #延迟清串口
+                                        # 延迟清串口
                                         time.sleep(0.2)
                                         ser.flush()
                                     # 满载
@@ -1286,26 +1392,27 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                             buffer = ""  # 清空缓冲区
                     except UnicodeDecodeError:
                         # 如果解码失败，处理异常
+                        # queue_transmit.put("Tar=repeat!")
                         print("Decoding error: received data contains invalid ASCII characters.")
 
             except OSError as e:
                 print(f"OSError occurred: {e}")
-                time.sleep(0.2)  # 程序暂停一秒后重试
                 ser.close()
-                ser = serial.Serial(port, baudrate, timeout=timeout)
+                time.sleep(0.2)  # 程序暂停一秒后重试
+
                 print("已重新打开")
             except serial.SerialException as e:
                 print(f"SerialException occurred: {e}")
                 print("Attempting to reinitialize the serial port...")
-                time.sleep(0.2)  # 程序暂停一秒后重试
                 ser.close()
-                ser = serial.Serial(port, baudrate, timeout=timeout)
+                time.sleep(0.2)  # 程序暂停一秒后重试
+                ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
                 print("已重新打开")
             except Exception as e:
                 print(f"Unexpected error: {e}")
-                time.sleep(0.2)  # 程序暂停一秒后重试
                 ser.close()
-                ser = serial.Serial(port, baudrate, timeout=timeout)
+                time.sleep(0.2)  # 程序暂停一秒后重试
+                ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
                 print("已重新打开")
 
 
@@ -1313,7 +1420,7 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                 data_to_send = queue_transmit.get()
                 try:
                     ser.write(data_to_send.encode('ascii'))
-                    print("发送的数据",data_to_send.encode('ascii'))
+                    print("发送的数据", data_to_send.encode('ascii'))
                 except Exception as e:
                     print(f"Unexpected error: {e}")
                     time.sleep(0.2)  # 程序暂停一秒后重试
