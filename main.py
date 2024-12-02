@@ -1309,7 +1309,7 @@ def uart_transition(com, ser_ttyAMA4):
 
     while ser_ttyAMA4.in_waiting > 0:
         ser_ttyAMA4.read(ser_ttyAMA4.in_waiting)  # 读取并丢弃所有数据
-    ser_ttyAMA4.flushInput()
+    ser_ttyAMA4.reset_input_buffer()
 
     while ser_ttyAMA4.in_waiting == 0:
         ser_ttyAMA4.flushInput()
@@ -1326,7 +1326,7 @@ def uart_transition(com, ser_ttyAMA4):
     except UnicodeDecodeError:
         # 如果解码失败，处理异常
         print("Decoding error: received data contains invalid ASCII characters.")
-
+    ser_ttyAMA4.flushInput()
 
 def open_serial(port, baudrate, timeout=None, retry_interval=1):
     """
@@ -1358,7 +1358,7 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
     baudrate = 115200
     timeout = 1
     ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
-    ser.flush()
+    ser.reset_input_buffer()
     buffer = ""
 
     while True:
@@ -1382,7 +1382,7 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                                         queue_receive.put("detect")
                                         # 延迟清串口
                                         time.sleep(0.2)
-                                        ser.flush()
+                                        ser.reset_input_buffer()
                                     # 满载
                                     elif message == "full":
                                         queue_display_ser.put("full=!")
