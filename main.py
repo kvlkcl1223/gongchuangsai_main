@@ -447,16 +447,16 @@ class SimpleApp:
         self.background_label.place(x=0, y=0, relwidth=1, relheight=1)  # 设置背景填满整个窗口
 
         #垃圾总数标签
-        self.label_harmful = tk.Label(root, text="有害垃圾:0   ", font=("Source Han Sans", 32), bg='lightblue')
+        self.label_harmful = tk.Label(root, text="有害垃圾 :0   ", font=("Source Han Sans", 32), bg='lightblue')
         self.label_harmful.place(relx=0.2, rely=0.2, anchor='center')
 
-        self.label_recyclable = tk.Label(root, text="可回收垃圾:0   ", font=("Source Han Sans", 32), bg='lightblue')
+        self.label_recyclable = tk.Label(root, text="可回收垃圾 :0   ", font=("Source Han Sans", 32), bg='lightblue')
         self.label_recyclable.place(relx=0.4, rely=0.2, anchor='center')
 
-        self.label_kitchen = tk.Label(root, text="厨余垃圾:0   ", font=("Source Han Sans", 32), bg='lightblue')
+        self.label_kitchen = tk.Label(root, text="厨余垃圾 :0   ", font=("Source Han Sans", 32), bg='lightblue')
         self.label_kitchen.place(relx=0.6, rely=0.2, anchor='center')
 
-        self.label_other = tk.Label(root, text="其他垃圾:0   ", font=("Source Han Sans", 32), bg='lightblue')
+        self.label_other = tk.Label(root, text="其他垃圾 :0   ", font=("Source Han Sans", 32), bg='lightblue')
         self.label_other.place(relx=0.8, rely=0.2, anchor='center')
 
 
@@ -523,10 +523,10 @@ class SimpleApp:
         self.state = ""
 
     def update_display(self):
-        self.label_harmful.config(text=f"有害垃圾: {self.quantity_harmful}")
-        self.label_recyclable.config(text=f"可回收垃圾: {self.quantity_recyclable}")
-        self.label_kitchen.config(text=f"厨余垃圾: {self.quantity_kitchen}")
-        self.label_other.config(text=f"其他垃圾: {self.quantity_other}")
+        self.label_harmful.config(text=f"有害垃圾 : {self.quantity_harmful}")
+        self.label_recyclable.config(text=f"可回收垃圾 : {self.quantity_recyclable}")
+        self.label_kitchen.config(text=f"厨余垃圾 : {self.quantity_kitchen}")
+        self.label_other.config(text=f"其他垃圾 : {self.quantity_other}")
         # self.label_index.config(text=f"index: {self.index}")
         # self.label_name.config(text=f"name: {self.name}")
         # self.label_quantity.config(text=f"quantity: {self.quantity}")
