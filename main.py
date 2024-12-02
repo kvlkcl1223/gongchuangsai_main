@@ -1327,7 +1327,7 @@ def uart_transition(com, ser_ttyAMA4):
         # 如果解码失败，处理异常
         print("Decoding error: received data contains invalid ASCII characters.")
     if ser_ttyAMA4.in_waiting > 0:
-        data_to_discard = ser_ttyAMA4.readline()
+        data_to_discard = ser_ttyAMA4.readline().decode('ascii').strip()
         print("data_to_discard", data_to_discard)
 def open_serial(port, baudrate, timeout=None, retry_interval=1):
     """
