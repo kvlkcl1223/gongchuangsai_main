@@ -1315,7 +1315,7 @@ def uart_transition(com, ser_ttyAMA4):
         ser_ttyAMA4.flushInput()
         ser_ttyAMA4.write(com)
         print("发送的数据", com)
-        time.sleep(0.1)
+        time.sleep(0.3)
         serial_cnt += 1
 
         if serial_cnt > 5:
@@ -1328,7 +1328,7 @@ def uart_transition(com, ser_ttyAMA4):
         print("Decoding error: received data contains invalid ASCII characters.")
     if ser_ttyAMA4.in_waiting > 0:
         data_to_discard = ser_ttyAMA4.readline()
-
+        print("data_to_discard", data_to_discard)
 def open_serial(port, baudrate, timeout=None, retry_interval=1):
     """
     尝试打开串口，直到成功为止。
