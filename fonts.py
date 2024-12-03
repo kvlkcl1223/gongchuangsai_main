@@ -14,3 +14,11 @@ font = tkfont.Font(family='Arial', size=12)
 print(f"Font details: {font.actual()}")
 
 root.mainloop()
+
+
+
+import tkinter.font as tkfont
+
+# 获取所有字体
+fonts = tkfont.families()
+print(fonts)  # 输出所有可用的字体名称
