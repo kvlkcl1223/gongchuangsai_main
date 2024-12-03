@@ -17,8 +17,17 @@
 
 
 
+import tkinter as tk
 import tkinter.font as tkfont
 
-# 获取所有字体
+# 创建 Tkinter 窗口
+root = tk.Tk()
+
+# 获取系统所有可用的字体
 fonts = tkfont.families()
-print(fonts)  # 输出所有可用的字体名称
+
+# 打印所有字体名称
+print("Available fonts:", fonts)
+
+# 关闭 Tkinter 窗口
+root.destroy()
