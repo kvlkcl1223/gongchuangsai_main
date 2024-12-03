@@ -3,10 +3,14 @@
 # # 获取所有可用的字体
 # font_paths = matplotlib.font_manager.findSystemFonts()
 # print(font_paths)
-
 import tkinter as tk
 import tkinter.font as tkfont
 
+# 创建 Tkinter 窗口
 root = tk.Tk()
-font = tkfont.nametofont(root.option_get('font', 'TkDefaultFont'))
-print(font.actual())  # 打印当前字体信息
+
+# 手动指定一个字体，例如 'Arial'
+font = tkfont.Font(family='Arial', size=12)
+print(f"Font details: {font.actual()}")
+
+root.mainloop()
