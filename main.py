@@ -593,6 +593,7 @@ def display_process(queue_display,queue_display_ser):
     flag_start = 0
     root = tk.Tk()
     app = SimpleApp(root)
+    app.video_label.destroy()
     # 定期检查队列消息
     # 逻辑是 接收到垃圾种类存到last_frame_header再次收到success则把这个种类的垃圾加1
     def check_queue():
