@@ -447,43 +447,43 @@ class SimpleApp:
         self.background_label.place(x=0, y=0, relwidth=1, relheight=1)  # 设置背景填满整个窗口
 
         #垃圾总数标签
-        self.label_harmful = tk.Label(root, text="有害垃圾 :0   ", font=("fangsong ti", 32), bg='lightblue')
+        self.label_harmful = tk.Label(root, text="有害垃圾 :0   ", font=("fangsong ti", 16), bg='lightblue')
         self.label_harmful.place(relx=0.2, rely=0.2, anchor='center')
 
-        self.label_recyclable = tk.Label(root, text="可回收垃圾 :0   ", font=("fangsong ti", 32), bg='lightblue')
+        self.label_recyclable = tk.Label(root, text="可回收垃圾 :0   ", font=("fangsong ti", 16), bg='lightblue')
         self.label_recyclable.place(relx=0.4, rely=0.2, anchor='center')
 
-        self.label_kitchen = tk.Label(root, text="厨余垃圾 :0   ", font=("fangsong ti", 32), bg='lightblue')
+        self.label_kitchen = tk.Label(root, text="厨余垃圾 :0   ", font=("fangsong ti", 16), bg='lightblue')
         self.label_kitchen.place(relx=0.6, rely=0.2, anchor='center')
 
-        self.label_other = tk.Label(root, text="其他垃圾 :0   ", font=("fangsong ti", 32), bg='lightblue')
+        self.label_other = tk.Label(root, text="其他垃圾 :0   ", font=("fangsong ti", 16), bg='lightblue')
         self.label_other.place(relx=0.8, rely=0.2, anchor='center')
 
 
         # 某次垃圾分类的标签 标号 名字 数量 是否成功
-        self.label_index = tk.Label(root, text="   ", font=("fangsong ti", 32), bg='lightblue')
+        self.label_index = tk.Label(root, text="   ", font=("fangsong ti", 24), bg='lightblue')
         self.label_index.place(relx=0.2, rely=0.5, anchor='center')
 
-        self.label_name = tk.Label(root, text="   ", font=("fangsong ti", 32), bg='lightblue')
+        self.label_name = tk.Label(root, text="   ", font=("fangsong ti", 24), bg='lightblue')
         self.label_name.place(relx=0.4, rely=0.5, anchor='center')
 
-        self.label_quantity = tk.Label(root, text="   ", font=("fangsong ti", 32), bg='lightblue')
+        self.label_quantity = tk.Label(root, text="   ", font=("fangsong ti", 24), bg='lightblue')
         self.label_quantity.place(relx=0.6, rely=0.5, anchor='center')
 
-        self.label_success = tk.Label(root, text="   ", font=("fangsong ti", 32), bg='lightblue')
+        self.label_success = tk.Label(root, text="   ", font=("fangsong ti", 24), bg='lightblue')
         self.label_success.place(relx=0.8, rely=0.5, anchor='center')
 
         # 双次垃圾分类的标签 标号 名字 数量 是否成功
-        self.label_index_double = tk.Label(root, text="   ", font=("fangsong ti", 32), bg='lightblue')
+        self.label_index_double = tk.Label(root, text="   ", font=("fangsong ti", 24), bg='lightblue')
         self.label_index_double.place(relx=0.2, rely=0.7, anchor='center')
 
-        self.label_name_double = tk.Label(root, text="   ", font=("fangsong ti", 32), bg='lightblue')
+        self.label_name_double = tk.Label(root, text="   ", font=("fangsong ti", 24), bg='lightblue')
         self.label_name_double.place(relx=0.4, rely=0.7, anchor='center')
 
-        self.label_quantity_double = tk.Label(root, text="   ", font=("fangsong ti", 32), bg='lightblue')
+        self.label_quantity_double = tk.Label(root, text="   ", font=("fangsong ti", 24), bg='lightblue')
         self.label_quantity_double.place(relx=0.6, rely=0.7, anchor='center')
 
-        self.label_success_double = tk.Label(root, text="   ", font=("fangsong ti", 32), bg='lightblue')
+        self.label_success_double = tk.Label(root, text="   ", font=("fangsong ti", 24), bg='lightblue')
         self.label_success_double.place(relx=0.8, rely=0.7, anchor='center')
 
         # self.label_index = tk.Label(root, text="index:   ", font=("fangsong ti", 32), bg='lightblue')
@@ -593,7 +593,6 @@ def display_process(queue_display,queue_display_ser):
     flag_start = 1
     root = tk.Tk()
     app = SimpleApp(root)
-    app.video_label.destroy()
     # 定期检查队列消息
     # 逻辑是 接收到垃圾种类存到last_frame_header再次收到success则把这个种类的垃圾加1
     def check_queue():
