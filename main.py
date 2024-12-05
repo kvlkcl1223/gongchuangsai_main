@@ -590,7 +590,7 @@ class SimpleApp:
 
 
 def display_process(queue_display,queue_display_ser):
-    flag_start = 0
+    flag_start = 1
     root = tk.Tk()
     app = SimpleApp(root)
     app.video_label.destroy()
