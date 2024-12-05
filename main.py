@@ -118,7 +118,7 @@ class YOLOv8Seg:
         )
         # cv2.imshow('im0', image)
         # cv2.waitKey(1)
-        return cls_, confs, masks, angles, centers, image, areas, width  # 类别 置信度 掩码 角度 中心 图像 面积比例
+        return cls_, confs, masks, angles, centers, image, areas, width  # 类别 置信度 掩码 角度 中心 图像 面积比例 宽度
 
     def preprocess(self, img):
         """
@@ -1141,7 +1141,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                 # 最终结果处理
                 print("final", final_cls_,final_confs,final_angles,final_centers,final_areas)
                 # 单垃圾
-                if index_garbage <= 100:
+                if index_garbage <= 10:
                     if (len(final_cls_)==1):
                         # 有害垃圾
                         if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
@@ -1201,37 +1201,37 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                         # 种类不同，先夹后倾倒
                         else:
                             if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
-                                command += f'j2x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
+                                command += f'j2x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}l{final_widths[0]}!'
                                 command_display += '有害垃圾=!'
                             # 可回收垃圾
                             elif final_cls_[0] == 5 or final_cls_[0] == 9:
-                                command += f'j1x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
+                                command += f'j1x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}l{final_widths[0]}!'
                                 command_display += '可回收垃圾=!'
                             # 厨余垃圾
                             elif final_cls_[0] == 3 or final_cls_[0] == 7:
-                                command += f'j3x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
+                                command += f'j3x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}l{final_widths[0]}!'
                                 command_display += '厨余垃圾=!'
                             # 其他垃圾
                             elif final_cls_[0] == 4 or final_cls_[0] == 6:
-                                command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}!'
+                                command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}l{final_widths[0]}!'
                                 command_display += '其他垃圾=!'
                     # 只发现一个 夹取一个，剩下的 选择一个不同的垃圾倾倒
                     elif (len(final_cls_) == 1):
                         # 有害垃圾
                         if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
-                            command += f'j2x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}q4!'
+                            command += f'j2x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}l{final_widths[0]}q4!'
                             command_display += '有害垃圾=!其他垃圾=!'
                         # 可回收垃圾
                         elif final_cls_[0] == 5 or final_cls_[0] == 9:
-                            command += f'j1x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}q4!'
+                            command += f'j1x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}l{final_widths[0]}q4!'
                             command_display += '可回收垃圾=!其他垃圾=!'
                         # 厨余垃圾
                         elif final_cls_[0] == 3 or final_cls_[0] == 7:
-                            command += f'j3x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}q4!'
+                            command += f'j3x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}l{final_widths[0]}q4!'
                             command_display += '厨余垃圾=!其他垃圾=!'
                         # 其他垃圾
                         elif final_cls_[0] == 4 or final_cls_[0] == 6:
-                            command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}q3!'
+                            command += f'j4x{final_centers[0][0]}y{final_centers[0][1]}a{final_angles[0]-angle_error}l{final_widths[0]}q3!'
                             command_display += '其他垃圾=!厨余垃圾=!'
                     # 完蛋，一个没识别出来，随机倾倒吧
                     elif (len(final_cls_) == 0):
