@@ -31,3 +31,12 @@ ser.reset_input_buffer()
 while True:
     ser.write("Tar=q2!".encode('ascii'))
     time.sleep(9)
+    if ser.in_waiting > 0:  # 检查是否有数据等待读取
+        # 读取一行数据并解码
+        try:
+            received_data = ser.readline().decode('ascii').strip()
+            print("received_data", received_data)
+        except UnicodeDecodeError:
+            # 如果解码失败，处理异常
+            # queue_transmit.put("Tar=repeat!")
+            print("Decoding error: received data contains invalid ASCII characters.")
