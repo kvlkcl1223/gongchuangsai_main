@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import time
 import tkinter as tk
 from tkinter import Label
