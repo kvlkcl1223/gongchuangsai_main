@@ -872,7 +872,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                 command_display = f''
 
                 # 单垃圾分类
-                if index_garbage <= 100:
+                if index_garbage <= 10:
                     count = 0
                     while count < 5:
                         count += 1
