@@ -11,7 +11,7 @@ import onnxruntime as ort
 import numpy as np
 import math
 
-def extract_region(image, points= [(388,10),(876,8),(886,486),(398,500)], output_size=(640, 640)):
+def extract_region(image, points= [(395,0),(885,0),(895,486),(405,500)], output_size=(640, 640)):
     """
     从给定的图像中提取四边形区域，并将其调整为指定的输出大小。
 
