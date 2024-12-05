@@ -325,9 +325,8 @@ def extract_region(image, points, output_size=(640, 640)):
     extracted_region = cv2.warpPerspective(image, M, output_size)
 
     return extracted_region
-
-# cap = cv2.VideoCapture(0,cv2.CAP_V4L2)
-cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+cap = cv2.VideoCapture(0,cv2.CAP_V4L2)
+# cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
 fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 cap.set(cv2.CAP_PROP_FOURCC, fourcc)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
