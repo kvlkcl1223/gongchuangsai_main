@@ -32,6 +32,7 @@ while True:
     ser.write("Tar=q2!".encode('ascii'))
     time.sleep(9)
     if ser.in_waiting > 0:  # 检查是否有数据等待读取
+        print("a")
         # 读取一行数据并解码
         try:
             received_data = ser.readline().decode('ascii').strip()
