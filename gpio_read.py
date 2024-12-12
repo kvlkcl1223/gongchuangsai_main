@@ -24,7 +24,7 @@ def is_gpio_low(pin):
 
 # 示例：检查 GPIO17 引脚是否为低电平
 if __name__ == "__main__":
-    gpio_pin = 17  # 修改为实际使用的 GPIO 编号
+    gpio_pin = 7  # 修改为实际使用的 GPIO 编号
     while True:
         if is_gpio_low(gpio_pin):
             print(f"GPIO{gpio_pin} is LOW.")
