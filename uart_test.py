@@ -14,10 +14,10 @@ def open_serial(port, baudrate, timeout=None, retry_interval=1):
     while True:
         try:
             ser = serial.Serial(port, baudrate, timeout=timeout)
-            print(f"Successfully opened serial port: {port}")
+            print(f'Successfully opened serial port: {port}')
             return ser  # 返回成功打开的串口对象
         except serial.SerialException as e:
-            print(f"Failed to open {port}: {e}. Retrying in {retry_interval} second(s)...")
+            print(f'Failed to open {port}: {e}. Retrying in {retry_interval} second(s)...')
             time.sleep(retry_interval)
 
 
@@ -34,10 +34,10 @@ while True:
             if ser.in_waiting > 0:  # 检查是否有数据等待读取
                 # 读取一行数据并解码
                 received_data = ser.readline().decode('ascii').strip()
-                print("received_data", received_data)
+                print('received_data', received_data)
         except Exception as e:
-            print(f"Unexpected error: {e}")
+            print(f'Unexpected error: {e}')
             ser.close()
             time.sleep(0.2)  # 程序暂停一秒后重试
             ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
-            print("已重新打开")
+            print('已重新打开')
