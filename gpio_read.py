@@ -16,7 +16,7 @@ def is_gpio_low(pin):
     - False: 如果引脚是高电平
     """
     GPIO.setmode(GPIO.BOARD)  # 使用 BCM 引脚编号
-    GPIO.setup(pin, GPIO.IN)  # 将引脚设置为输入模式
+    GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_OFF)
     time.sleep(1)
     state = GPIO.input(pin)  # 读取引脚状态
     GPIO.cleanup(pin)  # 清理引脚以释放资源
