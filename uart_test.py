@@ -42,6 +42,7 @@ while True:
     while True:
         try:
             if ser.in_waiting > 0:  # 检查是否有数据等待读取
+                print("ok")
                 # 读取一行数据并解码
                 received_data = ser.readline().decode('ascii').strip()
                 print('received_data', received_data)
@@ -52,4 +53,4 @@ while True:
             ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
             print('已重新打开')
 
-    time.sleep(0.1)
+        time.sleep(0.1)
