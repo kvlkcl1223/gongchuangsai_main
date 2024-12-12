@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+
+
+
 import serial
 import time
 def open_serial(port, baudrate, timeout=None, retry_interval=1):
