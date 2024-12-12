@@ -27,7 +27,14 @@ def open_serial(port, baudrate, timeout=None, retry_interval=1):
 port = '/dev/ttyUSB0'  # 替换为你的串口号
 baudrate = 115200
 timeout = 1
-ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
+ser = serial.Serial(
+    port="/dev/ttyS0",
+    baudrate=115200,
+    bytesize=serial.EIGHTBITS,
+    parity=serial.PARITY_NONE,
+    stopbits=serial.STOPBITS_ONE,
+)
+
 ser.reset_input_buffer()
 buffer = ""
 
