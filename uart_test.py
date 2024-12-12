@@ -51,3 +51,5 @@ while True:
             time.sleep(0.2)  # 程序暂停一秒后重试
             ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
             print('已重新打开')
+
+    time.sleep(0.1)
