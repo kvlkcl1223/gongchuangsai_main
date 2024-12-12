@@ -15,7 +15,7 @@ def is_gpio_low(pin):
     - True: 如果引脚是低电平
     - False: 如果引脚是高电平
     """
-    GPIO.setmode(GPIO.BCM)  # 使用 BCM 引脚编号
+    GPIO.setmode(GPIO.BOARD)  # 使用 BCM 引脚编号
     GPIO.setup(pin, GPIO.IN)  # 将引脚设置为输入模式
     time.sleep(1)
     state = GPIO.input(pin)  # 读取引脚状态
@@ -26,7 +26,7 @@ def is_gpio_low(pin):
 
 # 示例：检查 GPIO17 引脚是否为低电平
 if __name__ == "__main__":
-    gpio_pin = 2  # 修改为实际使用的 GPIO 编号
+    gpio_pin = 7  # 修改为实际使用的 GPIO 编号
     while True:
         if is_gpio_low(gpio_pin):
             print("GPIO is LOW.")
