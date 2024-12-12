@@ -50,7 +50,13 @@ while True:
             print('Unexpected error:')
             ser.close()
             time.sleep(0.2)  # 程序暂停一秒后重试
-            ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
+            ser = serial.Serial(
+                port="/dev/ttyUSB0",
+                baudrate=115200,
+                bytesize=serial.EIGHTBITS,
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE,
+            )
             print('已重新打开')
 
         time.sleep(0.1)
