@@ -29,7 +29,7 @@ if __name__ == "__main__":
     gpio_pin = 7  # 修改为实际使用的 GPIO 编号
     while True:
         if is_gpio_low(gpio_pin):
-            print(f"GPIO is LOW.")
+            print("GPIO is LOW.")
         else:
-            print(f"GPIO is HIGH.")
+            print("GPIO is HIGH.")
         time.sleep(1)  # 每隔 1 秒检查一次
