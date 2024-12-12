@@ -14,10 +14,10 @@ def open_serial(port, baudrate, timeout=None, retry_interval=1):
     while True:
         try:
             ser = serial.Serial(port, baudrate, timeout=timeout)
-            print(r"Successfully opened serial port:")
+            print("Successfully opened serial port:")
             return ser  # 返回成功打开的串口对象
         except serial.SerialException as e:
-            print(r"Failed to open . Retrying in second(s)...")
+            print("Failed to open . Retrying in second(s)...")
             time.sleep(retry_interval)
 
 
