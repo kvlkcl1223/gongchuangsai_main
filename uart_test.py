@@ -36,7 +36,7 @@ while True:
                 received_data = ser.readline().decode('ascii').strip()
                 print('received_data', received_data)
         except Exception as e:
-            print(f'Unexpected error:')
+            print('Unexpected error:')
             ser.close()
             time.sleep(0.2)  # 程序暂停一秒后重试
             ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
