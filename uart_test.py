@@ -41,16 +41,16 @@ while True:
                     for message in messages:
                         if message:  # 确保消息不为空
                             print(f"command接收到的数据: {message}")
-                            if message == "com=q1":  # 替换为实际的条件
+                            if message == "Com=q1":  # 替换为实际的条件
                                 print("Tar=q1!")
                                 print('可回收垃圾=!')
-                            elif message == "com=q2":  # 替换为实际的条件
+                            elif message == "Com=q2":  # 替换为实际的条件
                                 print("Tar=q2!")
                                 print('有害垃圾=!')
-                            elif message == "com=q3":  # 替换为实际的条件
+                            elif message == "Com=q3":  # 替换为实际的条件
                                 print("Tar=q3!")
                                 print('厨余垃圾=!')
-                            elif message == "com=q4":  # 替换为实际的条件
+                            elif message == "Com=q4":  # 替换为实际的条件
                                 print("Tar=q4!")
                                 print('其他垃圾=!')
                     buffer = ""  # 清空缓冲区
