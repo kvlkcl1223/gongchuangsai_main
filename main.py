@@ -608,6 +608,8 @@ class SimpleApp:
 
 def display_process(queue_display,queue_display_ser):
     flag_start = 1
+    while queue_display.empty():
+        time.sleep(0.1)
     root = tk.Tk()
     app = SimpleApp(root)
     # 定期检查队列消息
@@ -1481,7 +1483,7 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser
                                         queue_receive.put("detect")
                                         print("已放入 queue_receive: detect")
                                         # 延迟清串口
-                                        time.sleep(0.8)
+                                        time.sleep(3)
                                         while ser.in_waiting > 0:
                                             data_to_discard = ser.read()
                                     # 满载
