@@ -604,6 +604,7 @@ def display_process(queue_display,queue_display_ser):
         try:
             # 来自main的命令
             message = queue_display.get_nowait()  # 尝试获取消息
+            print("来自main",message)
             # app.update_label(message)  # 更新标签
             app.flag_start = 0
             app.video_label.destroy()
@@ -665,6 +666,7 @@ def display_process(queue_display,queue_display_ser):
             # 满载以及动作完成直接由串口发送
             # 来自main的命令
             message_ser = queue_display_ser.get_nowait()  # 尝试获取消息
+            print("来自串口", message_ser)
             # app.update_label(message)  # 更新标签
             app.flag_start = 0
             app.video_label.destroy()
@@ -1495,19 +1497,21 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                             messages = buffer.split('!')  # 根据标识符分割消息
                             for message in messages:
                                 if message:  # 确保消息不为空
+                                    data_to_send = ""
                                     print(f"command接收到的数据: {message}")
                                     if message == "com=q1":  # 替换为实际的条件
-                                        queue_transmit.put("Tar=q1!")
+                                        data_to_send = "Tar=q1!"
                                         queue_display_ser.put('可回收垃圾=!')
                                     elif message == "com=q2":  # 替换为实际的条件
-                                        queue_transmit.put("Tar=q2!")
+                                        data_to_send = "Tar=q2!"
                                         queue_display_ser.put('有害垃圾=!')
                                     elif message == "com=q3":  # 替换为实际的条件
-                                        queue_transmit.put("Tar=q3!")
+                                        data_to_send = "Tar=q3!"
                                         queue_display_ser.put('厨余垃圾=!')
                                     elif message == "com=q4":  # 替换为实际的条件
-                                        queue_transmit.put("Tar=q4!")
+                                        data_to_send = "Tar=q4!"
                                         queue_display_ser.put('其他垃圾=!')
+                                    uart_transition(data_to_send.encode('ascii'),ser)
                             buffer = ""  # 清空缓冲区
                     except UnicodeDecodeError:
                         # 如果解码失败，处理异常
