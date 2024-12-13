@@ -866,7 +866,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
         ret, frame = cap.read()
         cls_, confs, _, angles, centers, image, areas, width = model(frame, conf_threshold=0.7, iou_threshold=0.5)
         cls_, confs, _, angles, centers, image, areas, width = model_large(frame, conf_threshold=0.7, iou_threshold=0.5)
-
+    queue_display.put("OK=!")
     print("ok")
     #应该在所有的东西启动完成时，在屏幕上显示东西
 
