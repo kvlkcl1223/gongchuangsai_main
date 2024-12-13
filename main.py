@@ -914,7 +914,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
                     while count < 5:
                         count += 1
                         # 置信度逐级递减
-                        conf_threshold = 0.75-count*0.05
+                        conf_threshold = 0.80-count*0.05
                         start_time = time.time()
                         while time.time() - start_time < time_update:
                             ret, frame = cap.read()
@@ -944,6 +944,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
                             # 可采取更大模型去识别本次或其他措施
                             else:
                                 print("二次识别与一次识别矛盾")
+                                time.sleep(2)
                                 start_time = time.time()
                                 while time.time() - start_time < time_update:
                                     ret, frame = cap.read()
@@ -999,6 +1000,8 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
 
                         else:
                             print("单垃圾,未成功识别出来")
+
+
 
                 # 双垃圾分类
                 elif index_garbage > 10:
@@ -1492,7 +1495,7 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser
                                     queue_receive.put("detect")
                                     print("已放入 queue_receive: detect")
                                     # 延迟清串口
-                                    time.sleep(2)
+                                    time.sleep(1)
                                     while ser.in_waiting > 0:
                                         data_to_discard = ser.read()
                                 # 满载
