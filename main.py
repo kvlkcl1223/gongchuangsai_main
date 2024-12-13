@@ -929,7 +929,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
                 command_display = f''
 
                 # 单垃圾分类
-                if is_gpio_low(3):
+                if is_gpio_low(13):
                     print("当前单垃圾分类")
                     count = 0
                     while count < 5:
