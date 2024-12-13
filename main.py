@@ -34,6 +34,30 @@ def is_gpio_low(pin):
     return state == GPIO.LOW  # 返回是否为低电平
 
 
+def process_image(image):
+
+    # 步骤 1: 非局部均值滤波去噪
+    denoised = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
+
+    # 步骤 2: 提升饱和度
+    hsv_image = cv2.cvtColor(denoised, cv2.COLOR_BGR2HSV)
+    h, s, v = cv2.split(hsv_image)
+    s = cv2.add(s, 50)  # 增加饱和度
+    enhanced_hsv = cv2.merge((h, s, v))
+    enhanced_image = cv2.cvtColor(enhanced_hsv, cv2.COLOR_HSV2BGR)
+
+    # # 步骤 3: 使用 CLAHE 增强对比度
+    # lab_image = cv2.cvtColor(enhanced_image, cv2.COLOR_BGR2LAB)
+    # l, a, b = cv2.split(lab_image)
+    # clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    # enhanced_l = clahe.apply(l)
+    # enhanced_lab = cv2.merge((enhanced_l, a, b))
+    # final_image = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
+
+    final_image = enhanced_image
+    return final_image
+
+
 def extract_region(image, points=  [(340,28),(950,20),(970,506),(340,520)], output_size=(640, 640)):
     """
     从给定的图像中提取四边形区域，并将其调整为指定的输出大小。
@@ -136,6 +160,7 @@ class YOLOv8Seg:
         # Pre-process
         im0 = extract_region(im0)
         im0 = read_kernel(im0)
+        im0 = process_image(im0)
         im, ratio, (pad_w, pad_h) = self.preprocess(im0)
 
         # Ort inference
