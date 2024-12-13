@@ -1101,6 +1101,8 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
                             print("增添后正好两个")
                             final_cls_.append(sum_cls_[grouped_indices[0][0]])
                             final_cls_.append(sum_cls_[grouped_indices[1][0]])
+                            final_confs.append(sum_cls_[grouped_indices[0][0]])
+                            final_confs.append(sum_cls_[grouped_indices[1][0]])
                             final_centers.append(sum_centers[grouped_indices[0][0]])
                             final_centers.append(sum_centers[grouped_indices[1][0]])
                             final_angles.append(sum_angles[grouped_indices[0][0]])
@@ -1125,6 +1127,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
                             # 合并前两组的数据
                             for group_index in top_two_groups:
                                 final_cls_.append(sum_cls_[group_index[0]])
+                                final_confs.append(sum_confs[group_index[0]])
                                 final_centers.append(sum_centers[group_index[0]])
                                 final_angles.append(sum_angles[group_index[0]])
                                 final_areas.append(sum_areas[group_index[0]])
@@ -1134,6 +1137,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
 
                         elif group_count < 2 and group_count >0:
                             final_cls_.append(sum_cls_[0])
+                            final_confs.append(sum_confs[0])
                             final_centers.append(sum_centers[0])
                             final_angles.append(sum_angles[0])
                             final_areas.append(sum_areas[0])
