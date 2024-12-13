@@ -1355,14 +1355,16 @@ def uart_transition(com, ser_ttyAMA4):
         if serial_cnt > 5:
             break
     try:
-        received_data = ser_ttyAMA4.readline().decode('ascii').strip()
-        print("data_to_discard", received_data)
-    except UnicodeDecodeError:
+        while ser_ttyAMA4.in_waiting > 0:
+            data_to_discard = ser_ttyAMA4.read()
+            print("data_to_discard", data_to_discard)
+
+    except Exception as e:
         # 如果解码失败，处理异常
-        print("Decoding error: received data contains invalid ASCII characters.")
-    if ser_ttyAMA4.in_waiting > 0:
-        data_to_discard = ser_ttyAMA4.readline().decode('ascii').strip()
-        print("data_to_discard", data_to_discard)
+        print("error")
+    # if ser_ttyAMA4.in_waiting > 0:
+    #     data_to_discard = ser_ttyAMA4.readline().decode('ascii').strip()
+    #     print("data_to_discard", data_to_discard)
 def open_serial(port, baudrate, timeout=None, retry_interval=1):
     """
     尝试打开串口，直到成功为止。
@@ -1442,6 +1444,8 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser
     timeout = 1
     ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
     ser.reset_input_buffer()
+    while ser.in_waiting > 0:
+        data_to_discard = ser.read()
     buffer = ""
 
     # ser_command = serial.Serial(
@@ -1475,10 +1479,11 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser
                                     if message == "detect":  # 替换为实际的条件
                                         print("已发现有垃圾丢下，准备识别")
                                         queue_receive.put("detect")
+                                        print("已放入 queue_receive: detect")
                                         # 延迟清串口
                                         time.sleep(0.8)
-                                        if ser.in_waiting > 0:
-                                            data_to_discard = ser.readline()
+                                        while ser.in_waiting > 0:
+                                            data_to_discard = ser.read()
                                     # 满载
                                     elif message == "full":
                                         queue_display_ser.put("full=!")
