@@ -1408,10 +1408,10 @@ def open_serial_command(port):
 def serial_process(queue_receive,queue_transmit,queue_display_ser):
     #握手多次发送
 
-    while True:
-        time.sleep(3)
-        queue_display_ser.put("有害垃圾=!")
-        print("a")
+    # while True:
+    #     time.sleep(3)
+    #     queue_display_ser.put("有害垃圾=!")
+    #     print("a")
     # 创建串口对象
     port = '/dev/ttyTHS1'  # 替换为你的串口号
     baudrate = 115200
