@@ -658,7 +658,7 @@ def display_process(queue_display,queue_display_ser):
                 app.update_display()
 
         except Exception as e:
-            time.sleep(0.05)
+            pass
 
 
         try:
