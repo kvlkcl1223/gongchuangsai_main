@@ -638,89 +638,89 @@ def display_process(queue_display,queue_display_ser):
     # 逻辑是 接收到垃圾种类存到last_frame_header再次收到success则把这个种类的垃圾加1
     def check_queue():
 
-        try:
-            # 来自main的命令
-            message = queue_display.get_nowait()  # 尝试获取消息
-            print("来自main",message)
-            # app.update_label(message)  # 更新标签
-            app.flag_start = 0
-            app.video_label.destroy()
-            # 使用正则表达式提取多个 key=value! 对
-            pattern = r'(\w+)=([\w\W]*?)!'
-            matches = re.findall(pattern, message)
-            if matches:
-                if len(matches) ==1:
-                    for key, value in matches:
-                        key = key.strip()
-                        value = value.strip()
-
-                        # 根据解析到的 key 和 value 处理逻辑
-                        if key == "fail":
-                            app.state = "fail"
-                        elif key == "ok":
-                            print()
-                        else:
-                            app.index += 1
-                            app.name = key
-                            app.state = "classifying"
-                            app.last_frame_header = key
-                            app.name_double = ""
-                            app.quantity_double = ""
-                            app.last_frame_header = ""
-                            app.index_double = ""
-                            app.state_double = ""
-                elif len(matches) == 2:
-                    app.index += 1
-                    app.state = "classifying"
-                    app.state_double = "classifying"
-                    key1, value1 = matches[0]
-                    key2, value2 = matches[1]
-                    if key1 == key2:
-                        app.name = key1
-                        app.quantity = 2
-                        app.last_frame_header = key1
-                        app.name_double = ""
-                        app.quantity_double = ""
-                        app.last_frame_header = ""
-                        app.index_double = ""
-                    else:
-                        app.name = key1
-                        app.quantity = 1
-                        app.last_frame_header = key1
-                        app.name_double = key2
-                        app.quantity_double = 1
-                        app.last_frame_header_double = key2
-                        app.index_double = app.index
-                    # 调用更新显示的函数
-                app.update_display()
-
-
-
-                    # # 处理不同帧头的操作
-                    # if frame_header == "garbage":
-                    #     app.init_parameter()
-                    #     quantities = re.findall(r'i(\d+)\+q(\d+)', data)
-                    #     for index, quantity in quantities:
-                    #         print(f"Index: {index}, Quantity: {quantity}")
-                    #         app.index += str(index) + ","  # 将 index 转换为字符串并加上逗号
-                    #         app.name += app.names[int(index)] + ","
-                    #         app.quantity += str(quantity) + ","
-                    #         app.success = "OK"
-                    #     app.index = app.index[:-1]  # 移除最后的逗号
-                    #     print(app.index)
-                    #     app.name = app.name[:-1]
-                    #     app.quantity = app.quantity[:-1]
-                    #     app.update_display()
-                    # elif frame_header == "harmful":
-                    #     app.index += 1
-                    # elif frame_header == "full":
-                    #     app.full_display()
-                    # else:
-                    #     print(f"未知的帧头: {frame_header}")
-
-
-        except Exception as e:
-            pass
+        # try:
+        #     # 来自main的命令
+        #     message = queue_display.get_nowait()  # 尝试获取消息
+        #     print("来自main",message)
+        #     # app.update_label(message)  # 更新标签
+        #     app.flag_start = 0
+        #     app.video_label.destroy()
+        #     # 使用正则表达式提取多个 key=value! 对
+        #     pattern = r'(\w+)=([\w\W]*?)!'
+        #     matches = re.findall(pattern, message)
+        #     if matches:
+        #         if len(matches) ==1:
+        #             for key, value in matches:
+        #                 key = key.strip()
+        #                 value = value.strip()
+        #
+        #                 # 根据解析到的 key 和 value 处理逻辑
+        #                 if key == "fail":
+        #                     app.state = "fail"
+        #                 elif key == "ok":
+        #                     print()
+        #                 else:
+        #                     app.index += 1
+        #                     app.name = key
+        #                     app.state = "classifying"
+        #                     app.last_frame_header = key
+        #                     app.name_double = ""
+        #                     app.quantity_double = ""
+        #                     app.last_frame_header = ""
+        #                     app.index_double = ""
+        #                     app.state_double = ""
+        #         elif len(matches) == 2:
+        #             app.index += 1
+        #             app.state = "classifying"
+        #             app.state_double = "classifying"
+        #             key1, value1 = matches[0]
+        #             key2, value2 = matches[1]
+        #             if key1 == key2:
+        #                 app.name = key1
+        #                 app.quantity = 2
+        #                 app.last_frame_header = key1
+        #                 app.name_double = ""
+        #                 app.quantity_double = ""
+        #                 app.last_frame_header = ""
+        #                 app.index_double = ""
+        #             else:
+        #                 app.name = key1
+        #                 app.quantity = 1
+        #                 app.last_frame_header = key1
+        #                 app.name_double = key2
+        #                 app.quantity_double = 1
+        #                 app.last_frame_header_double = key2
+        #                 app.index_double = app.index
+        #             # 调用更新显示的函数
+        #         app.update_display()
+        #
+        #
+        #
+        #             # # 处理不同帧头的操作
+        #             # if frame_header == "garbage":
+        #             #     app.init_parameter()
+        #             #     quantities = re.findall(r'i(\d+)\+q(\d+)', data)
+        #             #     for index, quantity in quantities:
+        #             #         print(f"Index: {index}, Quantity: {quantity}")
+        #             #         app.index += str(index) + ","  # 将 index 转换为字符串并加上逗号
+        #             #         app.name += app.names[int(index)] + ","
+        #             #         app.quantity += str(quantity) + ","
+        #             #         app.success = "OK"
+        #             #     app.index = app.index[:-1]  # 移除最后的逗号
+        #             #     print(app.index)
+        #             #     app.name = app.name[:-1]
+        #             #     app.quantity = app.quantity[:-1]
+        #             #     app.update_display()
+        #             # elif frame_header == "harmful":
+        #             #     app.index += 1
+        #             # elif frame_header == "full":
+        #             #     app.full_display()
+        #             # else:
+        #             #     print(f"未知的帧头: {frame_header}")
+        #
+        #
+        # except Exception as e:
+        #     pass
 
         try:
             # 来自串口的命令
