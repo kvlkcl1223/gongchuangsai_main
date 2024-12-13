@@ -14,6 +14,26 @@ import numpy as np
 import math
 import Jetson.GPIO as GPIO
 
+def is_gpio_low(pin):
+    """
+    检查指定 GPIO 引脚是否为低电平。
+
+    参数:
+    - pin: GPIO 引脚号 (根据 BCM 编号)
+
+    返回:
+    - True: 如果引脚是低电平
+    - False: 如果引脚是高电平
+    """
+    GPIO.setmode(GPIO.BOARD)  # 使用 BCM 引脚编号
+    GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    time.sleep(1)
+    state = GPIO.input(pin)  # 读取引脚状态
+    GPIO.cleanup(pin)  # 清理引脚以释放资源
+
+    return state == GPIO.LOW  # 返回是否为低电平
+
+
 def extract_region(image, points= [(395,28),(885,20),(900,486),(428,500)], output_size=(640, 640)):
     """
     从给定的图像中提取四边形区域，并将其调整为指定的输出大小。
@@ -909,7 +929,8 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
                 command_display = f''
 
                 # 单垃圾分类
-                if index_garbage <= 10:
+                if is_gpio_low(3):
+                    print("当前单垃圾分类")
                     count = 0
                     while count < 5:
                         count += 1
@@ -1004,7 +1025,8 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
 
 
                 # 双垃圾分类
-                elif index_garbage > 10:
+                else:
+                    print("当前双垃圾分类")
                     sum_cls_ = []
                     sum_angles = []
                     sum_centers = []
@@ -1186,7 +1208,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
                 # 最终结果处理
                 print("final", final_cls_,final_confs,final_angles,final_centers,final_areas)
                 # 单垃圾
-                if index_garbage <= 10:
+                if is_gpio_low(3):
                     if (len(final_cls_)==1):
                         # 有害垃圾
                         if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
@@ -1414,24 +1436,6 @@ def open_serial_command(port):
             time.sleep(0.1)
 
 
-def is_gpio_low(pin):
-    """
-    检查指定 GPIO 引脚是否为低电平。
-
-    参数:
-    - pin: GPIO 引脚号 (根据 BCM 编号)
-
-    返回:
-    - True: 如果引脚是低电平
-    - False: 如果引脚是高电平
-    """
-    GPIO.setmode(GPIO.BOARD)  # 使用 BCM 引脚编号
-    GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    time.sleep(1)
-    state = GPIO.input(pin)  # 读取引脚状态
-    GPIO.cleanup(pin)  # 清理引脚以释放资源
-
-    return state == GPIO.LOW  # 返回是否为低电平
 
 def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser):
     #握手多次发送
