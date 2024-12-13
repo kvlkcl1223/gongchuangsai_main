@@ -62,9 +62,23 @@ while True:
         try:
             received_data = ser.readline().decode('ascii').strip()
             print("received_data", received_data)
-            time.sleep(0.1)
-            uart_transition("Tar=q4!".encode('ascii'),ser)
-            time.sleep(8)
+            buffer = received_data  # 将接收到的数据添加到缓冲区
+
+            # 假设数据以特定标识符结束（例如"!"）
+            if '!' in buffer:
+                messages = buffer.split('!')  # 根据标识符分割消息
+                # for message in messages:
+                if messages[0]:  # 确保消息不为空
+                    message = messages[0]
+                    data_to_send = ""
+                    print(f"接收到的数据: {message}")
+                    if message == "detect":  # 替换为实际的条件
+                        print("已发现有垃圾丢下，准备识别")
+                        uart_transition("Tar=q4!".encode('ascii'),ser)
+                        # 延迟清串口
+                        time.sleep(3)
+                        while ser.in_waiting > 0:
+                            data_to_discard = ser.read()
         except UnicodeDecodeError:
             # 如果解码失败，处理异常
             # queue_transmit.put("Tar=repeat!")
