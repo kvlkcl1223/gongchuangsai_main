@@ -1059,11 +1059,11 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
 
                         # 合并前两组的数据
                         for group_index in top_two_groups:
-                            final_cls_.append(sum_cls_[group_index[0]])
-                            final_centers.append(sum_centers[group_index[0]])
-                            final_angles.append(sum_angles[group_index[0]])
-                            final_areas.append(sum_areas[group_index[0]])
-                            final_widths.append(sum_widths[group_index[0]])
+                            final_cls_.append(sum_cls_[group_index])
+                            final_centers.append(sum_centers[group_index])
+                            final_angles.append(sum_angles[group_index])
+                            final_areas.append(sum_areas[group_index])
+                            final_widths.append(sum_widths[group_index])
                             # for index in grouped_indices[group_index]:
                             #     final_cls_.append(sum_cls_[index])
                             #     final_centers.append(sum_centers[index])
