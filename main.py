@@ -1483,8 +1483,8 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser
                         if '!' in buffer:
                             messages = buffer.split('!')  # 根据标识符分割消息
                             # for message in messages:
-                            if messages[-1]:  # 确保消息不为空
-                                message = messages[-1]
+                            if messages[-2]:  # 确保消息不为空
+                                message = messages[-2]
                                 data_to_send = ""
                                 print(f"接收到的数据: {message}")
                                 if message == "detect":  # 替换为实际的条件
@@ -1492,7 +1492,7 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser
                                     queue_receive.put("detect")
                                     print("已放入 queue_receive: detect")
                                     # 延迟清串口
-                                    time.sleep(3)
+                                    time.sleep(2)
                                     while ser.in_waiting > 0:
                                         data_to_discard = ser.read()
                                 # 满载
