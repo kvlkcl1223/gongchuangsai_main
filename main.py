@@ -1529,15 +1529,17 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser
                                     uart_transition(data_to_send.encode('ascii'),ser)
                                     # 等待时间 清除main 发送的东西 避免二次
 
-                                    time.sleep(0.1)
+                                    time.sleep(0.01)
                                     start_time = time.time()
                                     while time.time()-start_time < 10 and  queue_transmit.empty():
                                         time.sleep(0.1)
                                     time.sleep(0.1)
                                     while not queue_transmit.empty():
-                                        queue_transmit.get()
+                                        data_to_discard =queue_transmit.get()
+                                        print("丢弃队列 queue_transmit", data_to_discard)
                                     while not queue_display_ser.empty():
-                                        queue_display_ser.get()
+                                        data_to_discard = queue_display_ser.get()
+                                        print("丢弃队列 queue_display_ser", data_to_discard)
                                     print("队列已清空，是否为空：", queue_transmit.empty())  # 输出 True
                         buffer = ""  # 清空缓冲区
                         received_data = ""
