@@ -1517,8 +1517,8 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                 ser_command = open_serial_command(port="/dev/ttyUSB0")
                 print("已重新打开")
 
-            if is_gpio_low(7):
-                queue_display_ser.put("full=!")
+            # if is_gpio_low(7):
+            #     queue_display_ser.put("full=!")
 
 
             if not queue_transmit.empty():
