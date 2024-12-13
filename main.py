@@ -1351,11 +1351,12 @@ def uart_transition(com, ser_ttyAMA4):
         ser_ttyAMA4.flushInput()
         ser_ttyAMA4.write(com)
         print("发送的数据", com)
-        time.sleep(0.02)
+        time.sleep(0.1)
         serial_cnt += 1
 
         if serial_cnt > 5:
             break
+    time.sleep(0.1)
     try:
         while ser_ttyAMA4.in_waiting > 0:
             data_to_discard = ser_ttyAMA4.read()
