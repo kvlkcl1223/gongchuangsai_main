@@ -1499,9 +1499,10 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser
                                     queue_receive.put("detect")
                                     print("已放入 queue_receive: detect")
                                     # 延迟清串口
-                                    time.sleep(1)
+                                    time.sleep(2)
                                     while ser.in_waiting > 0:
                                         data_to_discard = ser.read()
+                                        print("detect 后丢弃的数据",data_to_discard)
                                 # 满载
                                 elif message == "full":
                                     queue_display_ser.put("full=!")
