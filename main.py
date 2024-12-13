@@ -1501,19 +1501,19 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                                 if message:  # 确保消息不为空
                                     data_to_send = ""
                                     print(f"command接收到的数据: {message}")
-                                    if message == "com=q1":  # 替换为实际的条件
+                                    if message == "Com=q1":  # 替换为实际的条件
                                         data_to_send = "Tar=q1!"
                                         queue_display_ser.put("可回收垃圾=!")
                                         print(data_to_send,"可回收垃圾")
-                                    elif message == "com=q2":  # 替换为实际的条件
+                                    elif message == "Com=q2":  # 替换为实际的条件
                                         data_to_send = "Tar=q2!"
                                         queue_display_ser.put("有害垃圾=!")
                                         print(data_to_send, "有害垃圾")
-                                    elif message == "com=q3":  # 替换为实际的条件
+                                    elif message == "Com=q3":  # 替换为实际的条件
                                         data_to_send = "Tar=q3!"
                                         queue_display_ser.put("厨余垃圾=!")
                                         print(data_to_send, "厨余垃圾")
-                                    elif message == "com=q4":  # 替换为实际的条件
+                                    elif message == "Com=q4":  # 替换为实际的条件
                                         data_to_send = "Tar=q4!"
                                         queue_display_ser.put("其他垃圾=!")
                                         print(data_to_send, "其他垃圾")
