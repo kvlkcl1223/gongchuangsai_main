@@ -1537,9 +1537,9 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser
                                     while not queue_transmit.empty():
                                         data_to_discard =queue_transmit.get()
                                         print("丢弃队列 queue_transmit", data_to_discard)
-                                    while not queue_display_ser.empty():
-                                        data_to_discard = queue_display_ser.get()
-                                        print("丢弃队列 queue_display_ser", data_to_discard)
+                                    while not queue_main_ser.empty():
+                                        data_to_discard = queue_main_ser.get()
+                                        print("丢弃队列 queue_main_ser", data_to_discard)
                                     print("队列已清空，是否为空：", queue_transmit.empty())  # 输出 True
                         buffer = ""  # 清空缓冲区
                         received_data = ""
