@@ -1449,7 +1449,7 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser
     while ser.in_waiting > 0:
         data_to_discard = ser.read()
     buffer = ""
-
+    received_data = ""
     # ser_command = serial.Serial(
     #     port="/dev/ttyUSB0",
     #     baudrate=115200,
@@ -1469,61 +1469,63 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser
 
                         received_data = ser.readline().decode('ascii').strip()
                         print("received_data", received_data)
-                        buffer += received_data  # 将接收到的数据添加到缓冲区
+                        buffer = received_data  # 将接收到的数据添加到缓冲区
 
                         # 假设数据以特定标识符结束（例如"!"）
                         if '!' in buffer:
                             messages = buffer.split('!')  # 根据标识符分割消息
-                            for message in messages:
-                                if message:  # 确保消息不为空
-                                    data_to_send = ""
-                                    print(f"接收到的数据: {message}")
-                                    if message == "detect":  # 替换为实际的条件
-                                        print("已发现有垃圾丢下，准备识别")
-                                        queue_receive.put("detect")
-                                        print("已放入 queue_receive: detect")
-                                        # 延迟清串口
-                                        time.sleep(3)
-                                        while ser.in_waiting > 0:
-                                            data_to_discard = ser.read()
-                                    # 满载
-                                    elif message == "full":
-                                        queue_display_ser.put("full=!")
-                                    # 动作完成
-                                    elif message == "success":
-                                        queue_display_ser.put("success=!")
+                            # for message in messages:
+                            if messages[0]:  # 确保消息不为空
+                                message = messages[0]
+                                data_to_send = ""
+                                print(f"接收到的数据: {message}")
+                                if message == "detect":  # 替换为实际的条件
+                                    print("已发现有垃圾丢下，准备识别")
+                                    queue_receive.put("detect")
+                                    print("已放入 queue_receive: detect")
+                                    # 延迟清串口
+                                    time.sleep(3)
+                                    while ser.in_waiting > 0:
+                                        data_to_discard = ser.read()
+                                # 满载
+                                elif message == "full":
+                                    queue_display_ser.put("full=!")
+                                # 动作完成
+                                elif message == "success":
+                                    queue_display_ser.put("success=!")
 
-                                    elif  message == "Com=q1" or message == "Com=q2" or message == "Com=q3" or message == "Com=q4":
-                                        if message == "Com=q1":  # 替换为实际的条件
-                                            data_to_send = "Tar=q1!"
-                                            queue_display_ser.put("可回收垃圾=!")
-                                            print(data_to_send,"可回收垃圾")
-                                        elif message == "Com=q2":  # 替换为实际的条件
-                                            data_to_send = "Tar=q2!"
-                                            queue_display_ser.put("有害垃圾=!")
-                                            print(data_to_send, "有害垃圾")
-                                        elif message == "Com=q3":  # 替换为实际的条件
-                                            data_to_send = "Tar=q3!"
-                                            queue_display_ser.put("厨余垃圾=!")
-                                            print(data_to_send, "厨余垃圾")
-                                        elif message == "Com=q4":  # 替换为实际的条件
-                                            data_to_send = "Tar=q4!"
-                                            queue_display_ser.put("其他垃圾=!")
-                                            print(data_to_send, "其他垃圾")
-                                        uart_transition(data_to_send.encode('ascii'),ser)
-                                        # 等待时间 清除main 发送的东西 避免二次
+                                elif  message == "Com=q1" or message == "Com=q2" or message == "Com=q3" or message == "Com=q4":
+                                    if message == "Com=q1":  # 替换为实际的条件
+                                        data_to_send = "Tar=q1!"
+                                        queue_display_ser.put("可回收垃圾=!")
+                                        print(data_to_send,"可回收垃圾")
+                                    elif message == "Com=q2":  # 替换为实际的条件
+                                        data_to_send = "Tar=q2!"
+                                        queue_display_ser.put("有害垃圾=!")
+                                        print(data_to_send, "有害垃圾")
+                                    elif message == "Com=q3":  # 替换为实际的条件
+                                        data_to_send = "Tar=q3!"
+                                        queue_display_ser.put("厨余垃圾=!")
+                                        print(data_to_send, "厨余垃圾")
+                                    elif message == "Com=q4":  # 替换为实际的条件
+                                        data_to_send = "Tar=q4!"
+                                        queue_display_ser.put("其他垃圾=!")
+                                        print(data_to_send, "其他垃圾")
+                                    uart_transition(data_to_send.encode('ascii'),ser)
+                                    # 等待时间 清除main 发送的东西 避免二次
 
+                                    time.sleep(0.1)
+                                    start_time = time.time()
+                                    while time.time()-start_time < 10 and (not queue_transmit.empty()):
                                         time.sleep(0.1)
-                                        start_time = time.time()
-                                        while time.time()-start_time < 10 and (not queue_transmit.empty()):
-                                            time.sleep(0.1)
-                                        time.sleep(0.1)
-                                        while not queue_transmit.empty():
-                                            queue_transmit.get()
-                                        while not queue_display_ser.empty():
-                                            queue_display_ser.get()
-                                        print("队列已清空，是否为空：", queue_transmit.empty())  # 输出 True
-                            buffer = ""  # 清空缓冲区
+                                    time.sleep(0.1)
+                                    while not queue_transmit.empty():
+                                        queue_transmit.get()
+                                    while not queue_display_ser.empty():
+                                        queue_display_ser.get()
+                                    print("队列已清空，是否为空：", queue_transmit.empty())  # 输出 True
+                        buffer = ""  # 清空缓冲区
+                        received_data = ""
                     except UnicodeDecodeError:
                         # 如果解码失败，处理异常
                         # queue_transmit.put("Tar=repeat!")
