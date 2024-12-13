@@ -663,8 +663,12 @@ def display_process(queue_display,queue_display_ser):
         try:
             # 来自串口的命令
             # 满载以及动作完成直接由串口发送
-            message = queue_display_ser.get_nowait()  # 尝试获取消息
-            header_match = re.match(r'^(.*?)=(.*?)!$', message)
+            # 来自main的命令
+            message_ser = queue_display_ser.get_nowait()  # 尝试获取消息
+            # app.update_label(message)  # 更新标签
+            app.flag_start = 0
+            app.video_label.destroy()
+            header_match = re.match(r'^(.*?)=(.*?)!$', message_ser)
             if header_match:
                 frame_header = header_match.group(1).strip()
                 data = header_match.group(2).strip()
