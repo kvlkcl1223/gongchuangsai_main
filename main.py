@@ -1523,7 +1523,7 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser
 
                                     time.sleep(0.1)
                                     start_time = time.time()
-                                    while time.time()-start_time < 10 and (not queue_transmit.empty()):
+                                    while time.time()-start_time < 10 and  queue_transmit.empty():
                                         time.sleep(0.1)
                                     time.sleep(0.1)
                                     while not queue_transmit.empty():
