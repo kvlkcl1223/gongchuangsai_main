@@ -338,18 +338,19 @@ def process_image(image):
     enhanced_hsv = cv2.merge((h, s, v))
     enhanced_image = cv2.cvtColor(enhanced_hsv, cv2.COLOR_HSV2BGR)
 
-    # 步骤 3: 使用 CLAHE 增强对比度
-    lab_image = cv2.cvtColor(enhanced_image, cv2.COLOR_BGR2LAB)
-    l, a, b = cv2.split(lab_image)
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    enhanced_l = clahe.apply(l)
-    enhanced_lab = cv2.merge((enhanced_l, a, b))
-    final_image = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
+    # # 步骤 3: 使用 CLAHE 增强对比度
+    # lab_image = cv2.cvtColor(enhanced_image, cv2.COLOR_BGR2LAB)
+    # l, a, b = cv2.split(lab_image)
+    # clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    # enhanced_l = clahe.apply(l)
+    # enhanced_lab = cv2.merge((enhanced_l, a, b))
+    # final_image = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
 
+    final_image = enhanced_image
     return final_image
 
 cap = cv2.VideoCapture(0,cv2.CAP_V4L2)
-# cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+# cap = cv2.VideoCapture(0)
 fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 cap.set(cv2.CAP_PROP_FOURCC, fourcc)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
