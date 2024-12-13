@@ -603,7 +603,7 @@ class SimpleApp:
         image_label.image = img
         image_label.place(x=0, y=0, width=self.root.winfo_screenwidth(), height=self.root.winfo_screenheight())  # 设置为全屏
         image_label.tkraise()
-        self.root.after(10000, image_label.destroy)  # 10秒后销毁标签
+        self.root.after(3000, image_label.destroy)  # 3秒后销毁标签
 
 
 def display_process(queue_display,queue_display_ser):
@@ -1444,14 +1444,14 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser
     ser.reset_input_buffer()
     buffer = ""
 
-    ser_command = serial.Serial(
-        port="/dev/ttyUSB0",
-        baudrate=115200,
-        bytesize=serial.EIGHTBITS,
-        parity=serial.PARITY_NONE,
-        stopbits=serial.STOPBITS_ONE,
-    )
-    ser_command = open_serial_command("/dev/ttyUSB0")
+    # ser_command = serial.Serial(
+    #     port="/dev/ttyUSB0",
+    #     baudrate=115200,
+    #     bytesize=serial.EIGHTBITS,
+    #     parity=serial.PARITY_NONE,
+    #     stopbits=serial.STOPBITS_ONE,
+    # )
+    # ser_command = open_serial_command("/dev/ttyUSB0")
 
     while True:
         while True:
@@ -1484,50 +1484,8 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser
                                     # 动作完成
                                     elif message == "success":
                                         queue_display_ser.put("success=!")
-                            buffer = ""  # 清空缓冲区
-                    except UnicodeDecodeError:
-                        # 如果解码失败，处理异常
-                        # queue_transmit.put("Tar=repeat!")
-                        print("Decoding error: received data contains invalid ASCII characters.")
 
-            except OSError as e:
-                print(f"OSError occurred: {e}")
-                ser.close()
-                time.sleep(0.2)  # 程序暂停一秒后重试
-
-                print("已重新打开")
-            except serial.SerialException as e:
-                print(f"SerialException occurred: {e}")
-                print("Attempting to reinitialize the serial port...")
-                ser.close()
-                time.sleep(0.2)  # 程序暂停一秒后重试
-                ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
-                print("已重新打开")
-            except Exception as e:
-                print(f"Unexpected error: {e}")
-                ser.close()
-                time.sleep(0.2)  # 程序暂停一秒后重试
-                ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
-                print("已重新打开")
-
-
-
-            try:
-                if ser_command.in_waiting > 0:  # 检查是否有数据等待读取
-                    # 读取一行数据并解码
-                    try:
-                        received_data = ser_command.readline().decode('ascii').strip()
-                        print("received_data", received_data)
-                        buffer += received_data  # 将接收到的数据添加到缓冲区
-
-                        # 假设数据以特定标识符结束（例如"!"）
-                        if '!' in buffer:
-                            messages = buffer.split('!')  # 根据标识符分割消息
-                            for message in messages:
-                                if message:  # 确保消息不为空
-                                    data_to_send = ""
-                                    print(f"command接收到的数据: {message}")
-                                    if message == "Com=q1":  # 替换为实际的条件
+                                    elif message == "Com=q1":  # 替换为实际的条件
                                         data_to_send = "Tar=q1!"
                                         queue_display_ser.put("可回收垃圾=!")
                                         print(data_to_send,"可回收垃圾")
@@ -1562,15 +1520,88 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser
                         # queue_transmit.put("Tar=repeat!")
                         print("Decoding error: received data contains invalid ASCII characters.")
 
+            except OSError as e:
+                print(f"OSError occurred: {e}")
+                ser.close()
+                time.sleep(0.2)  # 程序暂停一秒后重试
+
+                print("已重新打开")
+            except serial.SerialException as e:
+                print(f"SerialException occurred: {e}")
+                print("Attempting to reinitialize the serial port...")
+                ser.close()
+                time.sleep(0.2)  # 程序暂停一秒后重试
+                ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
+                print("已重新打开")
             except Exception as e:
                 print(f"Unexpected error: {e}")
-                ser_command.close()
+                ser.close()
                 time.sleep(0.2)  # 程序暂停一秒后重试
-                ser_command = open_serial_command(port="/dev/ttyUSB0")
+                ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
                 print("已重新打开")
+
+
+
+            # try:
+            #     if ser_command.in_waiting > 0:  # 检查是否有数据等待读取
+            #         # 读取一行数据并解码
+            #         try:
+            #             received_data = ser_command.readline().decode('ascii').strip()
+            #             print("received_data", received_data)
+            #             buffer += received_data  # 将接收到的数据添加到缓冲区
+            #
+            #             # 假设数据以特定标识符结束（例如"!"）
+            #             if '!' in buffer:
+            #                 messages = buffer.split('!')  # 根据标识符分割消息
+            #                 for message in messages:
+            #                     if message:  # 确保消息不为空
+            #                         data_to_send = ""
+            #                         print(f"command接收到的数据: {message}")
+            #                         if message == "Com=q1":  # 替换为实际的条件
+            #                             data_to_send = "Tar=q1!"
+            #                             queue_display_ser.put("可回收垃圾=!")
+            #                             print(data_to_send,"可回收垃圾")
+            #                         elif message == "Com=q2":  # 替换为实际的条件
+            #                             data_to_send = "Tar=q2!"
+            #                             queue_display_ser.put("有害垃圾=!")
+            #                             print(data_to_send, "有害垃圾")
+            #                         elif message == "Com=q3":  # 替换为实际的条件
+            #                             data_to_send = "Tar=q3!"
+            #                             queue_display_ser.put("厨余垃圾=!")
+            #                             print(data_to_send, "厨余垃圾")
+            #                         elif message == "Com=q4":  # 替换为实际的条件
+            #                             data_to_send = "Tar=q4!"
+            #                             queue_display_ser.put("其他垃圾=!")
+            #                             print(data_to_send, "其他垃圾")
+            #                         uart_transition(data_to_send.encode('ascii'),ser)
+            #                         # 等待时间 清除main 发送的东西 避免二次
+            #
+            #                         time.sleep(0.1)
+            #                         start_time = time.time()
+            #                         while time.time()-start_time < 10 and (not queue_transmit.empty()):
+            #                             time.sleep(0.1)
+            #                         time.sleep(0.1)
+            #                         while not queue_transmit.empty():
+            #                             queue_transmit.get()
+            #                         while not queue_display_ser.empty():
+            #                             queue_display_ser.get()
+            #                         print("队列已清空，是否为空：", queue_transmit.empty())  # 输出 True
+            #                 buffer = ""  # 清空缓冲区
+            #         except UnicodeDecodeError:
+            #             # 如果解码失败，处理异常
+            #             # queue_transmit.put("Tar=repeat!")
+            #             print("Decoding error: received data contains invalid ASCII characters.")
+            #
+            # except Exception as e:
+            #     print(f"Unexpected error: {e}")
+            #     ser_command.close()
+            #     time.sleep(0.2)  # 程序暂停一秒后重试
+            #     ser_command = open_serial_command(port="/dev/ttyUSB0")
+            #     print("已重新打开")
 
             if is_gpio_low(7):
                 queue_display_ser.put("full=!")
+                time.sleep(1)
 
 
             if not queue_transmit.empty():
