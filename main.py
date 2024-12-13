@@ -34,7 +34,7 @@ def is_gpio_low(pin):
     return state == GPIO.LOW  # 返回是否为低电平
 
 
-def extract_region(image, points= [(340,28),(920,20),(940,506),(340,520)], output_size=(640, 640)):
+def extract_region(image, points=  [(340,28),(950,20),(970,506),(340,520)], output_size=(640, 640)):
     """
     从给定的图像中提取四边形区域，并将其调整为指定的输出大小。
 
