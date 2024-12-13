@@ -610,6 +610,8 @@ def display_process(queue_display,queue_display_ser):
     flag_start = 1
     while queue_display.empty():
         time.sleep(0.1)
+    data_display_discard = queue_display.get()
+    print("data_display_discard",data_display_discard)
     root = tk.Tk()
     app = SimpleApp(root)
     # 定期检查队列消息
