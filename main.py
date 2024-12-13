@@ -12,6 +12,7 @@ import re
 import onnxruntime as ort
 import numpy as np
 import math
+import Jetson.GPIO as GPIO
 
 def extract_region(image, points= [(395,0),(885,0),(895,486),(405,500)], output_size=(640, 640)):
     """
@@ -100,6 +101,7 @@ class YOLOv8Seg:
         if im0.size == 0:
             print("Error: Input image has no content!")
             return [], [], [], [], [], im0, [], []
+
         # Pre-process
         im0 = extract_region(im0)
         im, ratio, (pad_w, pad_h) = self.preprocess(im0)
@@ -205,7 +207,8 @@ class YOLOv8Seg:
             # Compute mask areas and filter
             areas = np.sum(masks, axis=(1, 2))  # Calculate areas (number of True values per mask)
             # 标准化面积为占总图片面积的比例
-            areas = areas / self.total_image_area
+            area_image = im0.shape[0] * im0.shape[1]
+            areas = areas / area_image
             areas = np.round(areas, 5)
             print("面积比例", areas)
             # 筛选合理的切片
@@ -686,6 +689,16 @@ def display_process(queue_display,queue_display_ser):
                         app.quantity_kitchen += 1
                     elif app.last_frame_header_double == "其他垃圾":
                         app.quantity_other += 1
+                else:
+                    app.index += 1
+                    app.name = frame_header
+                    app.state = "classifying"
+                    app.last_frame_header = frame_header
+                    app.name_double = ""
+                    app.quantity_double = ""
+                    app.last_frame_header = ""
+                    app.index_double = ""
+                    app.state_double = ""
                 app.update_display()
 
                 # # 处理不同帧头的操作
@@ -750,7 +763,6 @@ def transform_point_to_rotated_coords_clockwise(point, angle=45.0):
     return (x_new, y_new)
 
 
-import numpy as np
 
 
 def group_coordinates_by_threshold(coords, threshold=30):
@@ -1349,6 +1361,42 @@ def open_serial(port, baudrate, timeout=None, retry_interval=1):
         except serial.SerialException as e:
             print(f"Failed to open {port}: {e}. Retrying in {retry_interval} second(s)...")
             time.sleep(retry_interval)
+def open_serial_command(port):
+    start_time = time.time()
+    while time.time()-start_time <10:
+        try:
+            ser = serial.Serial(
+                port="/dev/ttyUSB0",
+                baudrate=115200,
+                bytesize=serial.EIGHTBITS,
+                parity=serial.PARITY_NONE,
+                stopbits=serial.STOPBITS_ONE,
+            )
+            print(f"Successfully opened serial port: {port}")
+            return ser  # 返回成功打开的串口对象
+        except serial.SerialException as e:
+            print(f"Failed to open {port}: {e}. Retrying in {0.1} second(s)...")
+            time.sleep(0.1)
+
+
+def is_gpio_low(pin):
+    """
+    检查指定 GPIO 引脚是否为低电平。
+
+    参数:
+    - pin: GPIO 引脚号 (根据 BCM 编号)
+
+    返回:
+    - True: 如果引脚是低电平
+    - False: 如果引脚是高电平
+    """
+    GPIO.setmode(GPIO.BOARD)  # 使用 BCM 引脚编号
+    GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    time.sleep(1)
+    state = GPIO.input(pin)  # 读取引脚状态
+    GPIO.cleanup(pin)  # 清理引脚以释放资源
+
+    return state == GPIO.LOW  # 返回是否为低电平
 
 def serial_process(queue_receive,queue_transmit,queue_display_ser):
     #握手多次发送
@@ -1363,6 +1411,15 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
     ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
     ser.reset_input_buffer()
     buffer = ""
+
+    ser_command = serial.Serial(
+        port="/dev/ttyUSB0",
+        baudrate=115200,
+        bytesize=serial.EIGHTBITS,
+        parity=serial.PARITY_NONE,
+        stopbits=serial.STOPBITS_ONE,
+    )
+    ser_command = open_serial_command("/dev/ttyUSB0")
 
     while True:
         while True:
@@ -1418,6 +1475,50 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                 time.sleep(0.2)  # 程序暂停一秒后重试
                 ser = open_serial(port=port, baudrate=baudrate, timeout=timeout, retry_interval=1)
                 print("已重新打开")
+
+
+
+            try:
+                if ser_command.in_waiting > 0:  # 检查是否有数据等待读取
+                    # 读取一行数据并解码
+                    try:
+                        received_data = ser_command.readline().decode('ascii').strip()
+                        print("received_data", received_data)
+                        buffer += received_data  # 将接收到的数据添加到缓冲区
+
+                        # 假设数据以特定标识符结束（例如"!"）
+                        if '!' in buffer:
+                            messages = buffer.split('!')  # 根据标识符分割消息
+                            for message in messages:
+                                if message:  # 确保消息不为空
+                                    print(f"command接收到的数据: {message}")
+                                    if message == "com=q1":  # 替换为实际的条件
+                                        queue_transmit.put("Tar=q1!")
+                                        queue_display_ser.put('可回收垃圾=!')
+                                    elif message == "com=q2":  # 替换为实际的条件
+                                        queue_transmit.put("Tar=q2!")
+                                        queue_display_ser.put('有害垃圾=!')
+                                    elif message == "com=q3":  # 替换为实际的条件
+                                        queue_transmit.put("Tar=q3!")
+                                        queue_display_ser.put('厨余垃圾=!')
+                                    elif message == "com=q4":  # 替换为实际的条件
+                                        queue_transmit.put("Tar=q4!")
+                                        queue_display_ser.put('其他垃圾=!')
+                            buffer = ""  # 清空缓冲区
+                    except UnicodeDecodeError:
+                        # 如果解码失败，处理异常
+                        # queue_transmit.put("Tar=repeat!")
+                        print("Decoding error: received data contains invalid ASCII characters.")
+
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+                ser_command.close()
+                time.sleep(0.2)  # 程序暂停一秒后重试
+                ser_command = open_serial_command(port="/dev/ttyUSB0")
+                print("已重新打开")
+
+            if is_gpio_low(7):
+                queue_display_ser.put("full=!")
 
 
             if not queue_transmit.empty():
