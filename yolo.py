@@ -326,7 +326,7 @@ def extract_region(image, points, output_size=(640, 640)):
 
     return extracted_region
 
-def process_image(image)
+def process_image(image):
 
     # 步骤 1: 非局部均值滤波去噪
     denoised = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
