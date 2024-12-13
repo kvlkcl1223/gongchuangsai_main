@@ -14,7 +14,7 @@ import numpy as np
 import math
 import Jetson.GPIO as GPIO
 
-def extract_region(image, points= [(395,28),(885,20),(895,486),(420,500)], output_size=(640, 640)):
+def extract_region(image, points= [(395,28),(885,20),(900,486),(428,500)], output_size=(640, 640)):
     """
     从给定的图像中提取四边形区域，并将其调整为指定的输出大小。
 
