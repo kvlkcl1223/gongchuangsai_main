@@ -63,7 +63,7 @@ while True:
             received_data = ser.readline().decode('ascii').strip()
             print("received_data", received_data)
             time.sleep(0.1)
-            uart_transition("Tar=q4!",ser)
+            uart_transition("Tar=q4!".encode('ascii'),ser)
             time.sleep(8)
         except UnicodeDecodeError:
             # 如果解码失败，处理异常
