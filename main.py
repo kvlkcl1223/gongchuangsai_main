@@ -12,7 +12,7 @@ import re
 import onnxruntime as ort
 import numpy as np
 import math
-# import Jetson.GPIO as GPIO
+import Jetson.GPIO as GPIO
 
 def extract_region(image, points= [(395,0),(885,0),(895,486),(405,500)], output_size=(640, 640)):
     """
@@ -41,6 +41,17 @@ def extract_region(image, points= [(395,0),(885,0),(895,486),(405,500)], output_
     extracted_region = cv2.warpPerspective(image, M, output_size)
 
     return extracted_region
+
+
+def read_kernel(image):
+    # 定义卷积核（用于锐化）
+    kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])  # 锐化滤波核
+
+    # 对每个颜色通道进行锐化
+    sharpened = cv2.filter2D(image, -1, kernel)
+
+    return sharpened
+
 
 class YOLOv8Seg:
     """YOLOv8 segmentation model."""
@@ -104,6 +115,7 @@ class YOLOv8Seg:
 
         # Pre-process
         im0 = extract_region(im0)
+        im0 = read_kernel(im0)
         im, ratio, (pad_w, pad_h) = self.preprocess(im0)
 
         # Ort inference
@@ -806,6 +818,7 @@ def group_coordinates_by_threshold(coords, threshold=30):
     return len(groups), groups
 
 
+
 def open_camera(try_from: int = 0, try_to: int = 10):
     # 打开摄像头
 
@@ -816,13 +829,13 @@ def open_camera(try_from: int = 0, try_to: int = 10):
             return cam, i
     raise Exception("Camera not found")
 
-def yolo_process(queue_display,queue_receive, queue_transmit):
+def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
 
     # time.sleep(10)
     # while True:
     #     # 该部分处理为进行视觉识别算法，得到目标，将信息显示在屏幕上
     #     print("运行 YOLO 算法...")
-    #     queue_display.put('harmful=!')
+    #     queue_main_ser.put('harmful=!')
     #     #queue.put("full=!")
     #     time.sleep(3)  # 模拟 YOLO 处理
     #     # queue_display.put('success=!')
@@ -1268,7 +1281,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit):
                     queue_transmit.put(command)
                     print("放入发送队列信息",command)
                 if (command_display != ""):
-                    queue_display.put(command_display)
+                    queue_main_ser.put(command_display)
                     print("放入显示队列信息",command_display)
                     # print("种类",model.classes[cls_],"置信度",confs, "角度",angles, "中心点",centers)
                     # # 先用夹子丢需要压缩的垃圾，再用夹子丢其他，最后直接倾倒
@@ -1386,26 +1399,26 @@ def open_serial_command(port):
             time.sleep(0.1)
 
 
-# def is_gpio_low(pin):
-#     """
-#     检查指定 GPIO 引脚是否为低电平。
-#
-#     参数:
-#     - pin: GPIO 引脚号 (根据 BCM 编号)
-#
-#     返回:
-#     - True: 如果引脚是低电平
-#     - False: 如果引脚是高电平
-#     """
-#     GPIO.setmode(GPIO.BOARD)  # 使用 BCM 引脚编号
-#     GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-#     time.sleep(1)
-#     state = GPIO.input(pin)  # 读取引脚状态
-#     GPIO.cleanup(pin)  # 清理引脚以释放资源
-#
-#     return state == GPIO.LOW  # 返回是否为低电平
+def is_gpio_low(pin):
+    """
+    检查指定 GPIO 引脚是否为低电平。
 
-def serial_process(queue_receive,queue_transmit,queue_display_ser):
+    参数:
+    - pin: GPIO 引脚号 (根据 BCM 编号)
+
+    返回:
+    - True: 如果引脚是低电平
+    - False: 如果引脚是高电平
+    """
+    GPIO.setmode(GPIO.BOARD)  # 使用 BCM 引脚编号
+    GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    time.sleep(1)
+    state = GPIO.input(pin)  # 读取引脚状态
+    GPIO.cleanup(pin)  # 清理引脚以释放资源
+
+    return state == GPIO.LOW  # 返回是否为低电平
+
+def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser):
     #握手多次发送
 
     # while True:
@@ -1413,6 +1426,17 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
     #     queue_display_ser.put("有害垃圾=!")
     #     print("a")
     # 创建串口对象
+    while True:
+        if not queue_transmit.empty():
+            data_to_send = queue_transmit.get()
+
+
+        if not queue_main_ser.empty():
+            data_to_send = queue_main_ser.get()
+            queue_display_ser.put(data_to_send)
+
+        time.sleep(0.1)
+
     port = '/dev/ttyTHS1'  # 替换为你的串口号
     baudrate = 115200
     timeout = 1
@@ -1434,7 +1458,9 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
             try:
                 if ser.in_waiting > 0:  # 检查是否有数据等待读取
                     # 读取一行数据并解码
+                    print("来自stm32有信息发送")
                     try:
+
                         received_data = ser.readline().decode('ascii').strip()
                         print("received_data", received_data)
                         buffer += received_data  # 将接收到的数据添加到缓冲区
@@ -1449,7 +1475,7 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                                         print("已发现有垃圾丢下，准备识别")
                                         queue_receive.put("detect")
                                         # 延迟清串口
-                                        time.sleep(0.2)
+                                        time.sleep(0.8)
                                         if ser.in_waiting > 0:
                                             data_to_discard = ser.readline()
                                     # 满载
@@ -1518,6 +1544,18 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                                         queue_display_ser.put("其他垃圾=!")
                                         print(data_to_send, "其他垃圾")
                                     uart_transition(data_to_send.encode('ascii'),ser)
+                                    # 等待时间 清除main 发送的东西 避免二次
+
+                                    time.sleep(0.1)
+                                    start_time = time.time()
+                                    while time.time()-start_time < 10 and (not queue_transmit.empty()):
+                                        time.sleep(0.1)
+                                    time.sleep(0.1)
+                                    while not queue_transmit.empty():
+                                        queue_transmit.get()
+                                    while not queue_display_ser.empty():
+                                        queue_display_ser.get()
+                                    print("队列已清空，是否为空：", queue_transmit.empty())  # 输出 True
                             buffer = ""  # 清空缓冲区
                     except UnicodeDecodeError:
                         # 如果解码失败，处理异常
@@ -1531,8 +1569,8 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                 ser_command = open_serial_command(port="/dev/ttyUSB0")
                 print("已重新打开")
 
-            # if is_gpio_low(7):
-            #     queue_display_ser.put("full=!")
+            if is_gpio_low(7):
+                queue_display_ser.put("full=!")
 
 
             if not queue_transmit.empty():
@@ -1546,6 +1584,10 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                     ser = serial.Serial(port, baudrate, timeout=timeout)
                     uart_transition(data_to_send.encode('ascii'),ser)
 
+            if not queue_main_ser.empty():
+                data_to_send = queue_main_ser.get()
+                queue_display_ser.put(data_to_send)
+
             time.sleep(0.1)
 
 
@@ -1555,10 +1597,12 @@ if __name__ == '__main__':
     queue_receive = multiprocessing.Queue()
     queue_transmit = multiprocessing.Queue()
     queue_display_ser = multiprocessing.Queue()
+    queue_main_ser = multiprocessing.Queue()
 
-    display_proc = multiprocessing.Process(target=display_process, args=(queue_display, queue_display_ser))
-    serial_proc = multiprocessing.Process(target=serial_process, args=(queue_receive, queue_transmit, queue_display_ser))
-    main_proc = multiprocessing.Process(target=yolo_process, args=(queue_display, queue_receive, queue_transmit))
+
+    display_proc = multiprocessing.Process(target=display_process, args=(queue_display, queue_display_ser,))
+    serial_proc = multiprocessing.Process(target=serial_process, args=(queue_receive, queue_transmit, queue_display_ser,queue_main_ser))
+    main_proc = multiprocessing.Process(target=yolo_process, args=(queue_display, queue_receive, queue_transmit, queue_main_ser))
 
     display_proc.start()
     main_proc.start()
