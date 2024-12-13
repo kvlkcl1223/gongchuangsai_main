@@ -1426,16 +1426,16 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser
     #     queue_display_ser.put("有害垃圾=!")
     #     print("a")
     # 创建串口对象
-    while True:
-        if not queue_transmit.empty():
-            data_to_send = queue_transmit.get()
-
-
-        if not queue_main_ser.empty():
-            data_to_send = queue_main_ser.get()
-            queue_display_ser.put(data_to_send)
-
-        time.sleep(0.1)
+    # while True:
+    #     if not queue_transmit.empty():
+    #         data_to_send = queue_transmit.get()
+    #
+    #
+    #     if not queue_main_ser.empty():
+    #         data_to_send = queue_main_ser.get()
+    #         queue_display_ser.put(data_to_send)
+    #
+    #     time.sleep(0.1)
 
     port = '/dev/ttyTHS1'  # 替换为你的串口号
     baudrate = 115200
@@ -1599,9 +1599,9 @@ if __name__ == '__main__':
     queue_display_ser = multiprocessing.Queue()
     queue_main_ser = multiprocessing.Queue()
 
-
+    serial_proc = multiprocessing.Process(target=serial_process,
+                                          args=(queue_receive, queue_transmit, queue_display_ser, queue_main_ser))
     display_proc = multiprocessing.Process(target=display_process, args=(queue_display, queue_display_ser,))
-    serial_proc = multiprocessing.Process(target=serial_process, args=(queue_receive, queue_transmit, queue_display_ser,queue_main_ser))
     main_proc = multiprocessing.Process(target=yolo_process, args=(queue_display, queue_receive, queue_transmit, queue_main_ser))
 
     display_proc.start()
