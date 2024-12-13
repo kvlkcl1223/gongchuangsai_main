@@ -1208,7 +1208,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
                 # 最终结果处理
                 print("final", final_cls_,final_confs,final_angles,final_centers,final_areas)
                 # 单垃圾
-                if is_gpio_low(3):
+                if is_gpio_low(13):
                     if (len(final_cls_)==1):
                         # 有害垃圾
                         if final_cls_[0] == 1 or final_cls_[0] == 2 or final_cls_[0] == 8:
