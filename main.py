@@ -160,7 +160,7 @@ class YOLOv8Seg:
         # Pre-process
         im0 = extract_region(im0)
         im0 = read_kernel(im0)
-        im0 = process_image(im0)
+
         im, ratio, (pad_w, pad_h) = self.preprocess(im0)
 
         # Ort inference
