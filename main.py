@@ -657,81 +657,83 @@ def display_process(queue_display,queue_display_ser):
                     # 调用更新显示的函数
                 app.update_display()
 
+                # 来自串口的命令
+                # 满载以及动作完成直接由串口发送
+                # 来自main的命令
+                message_ser = queue_display_ser.get_nowait()  # 尝试获取消息
+                print("来自串口", message_ser)
+                # app.update_label(message)  # 更新标签
+                app.flag_start = 0
+                app.video_label.destroy()
+                header_match = re.match(r'^(.*?)=(.*?)!$', message_ser)
+                if header_match:
+                    frame_header = header_match.group(1).strip()
+                    data = header_match.group(2).strip()
+                    if frame_header == "full":
+                        app.full_display()
+                    elif frame_header == "success":
+                        app.state = "OK!"
+                        if app.last_frame_header == "有害垃圾":
+                            app.quantity_harmful += 1
+                        elif app.last_frame_header == "可回收垃圾":
+                            app.quantity_recyclable += 1
+                        elif app.last_frame_header == "厨余垃圾":
+                            app.quantity_kitchen += 1
+                        elif app.last_frame_header == "其他垃圾":
+                            app.quantity_other += 1
+
+                        if app.last_frame_header_double == "有害垃圾":
+                            app.quantity_harmful += 1
+                        elif app.last_frame_header_double == "可回收垃圾":
+                            app.quantity_recyclable += 1
+                        elif app.last_frame_header_double == "厨余垃圾":
+                            app.quantity_kitchen += 1
+                        elif app.last_frame_header_double == "其他垃圾":
+                            app.quantity_other += 1
+                    else:
+                        app.index += 1
+                        app.name = frame_header
+                        app.state = "classifying"
+                        app.last_frame_header = frame_header
+                        app.name_double = ""
+                        app.quantity_double = ""
+                        app.last_frame_header = ""
+                        app.index_double = ""
+                        app.state_double = ""
+                    app.update_display()
+
+                    # # 处理不同帧头的操作
+                    # if frame_header == "garbage":
+                    #     app.init_parameter()
+                    #     quantities = re.findall(r'i(\d+)\+q(\d+)', data)
+                    #     for index, quantity in quantities:
+                    #         print(f"Index: {index}, Quantity: {quantity}")
+                    #         app.index += str(index) + ","  # 将 index 转换为字符串并加上逗号
+                    #         app.name += app.names[int(index)] + ","
+                    #         app.quantity += str(quantity) + ","
+                    #         app.success = "OK"
+                    #     app.index = app.index[:-1]  # 移除最后的逗号
+                    #     print(app.index)
+                    #     app.name = app.name[:-1]
+                    #     app.quantity = app.quantity[:-1]
+                    #     app.update_display()
+                    # elif frame_header == "harmful":
+                    #     app.index += 1
+                    # elif frame_header == "full":
+                    #     app.full_display()
+                    # else:
+                    #     print(f"未知的帧头: {frame_header}")
+
+
         except Exception as e:
             pass
 
 
-        try:
-            # 来自串口的命令
-            # 满载以及动作完成直接由串口发送
-            # 来自main的命令
-            message_ser = queue_display_ser.get_nowait()  # 尝试获取消息
-            print("来自串口", message_ser)
-            # app.update_label(message)  # 更新标签
-            app.flag_start = 0
-            app.video_label.destroy()
-            header_match = re.match(r'^(.*?)=(.*?)!$', message_ser)
-            if header_match:
-                frame_header = header_match.group(1).strip()
-                data = header_match.group(2).strip()
-                if frame_header == "full":
-                    app.full_display()
-                elif frame_header == "success":
-                    app.state = "OK!"
-                    if app.last_frame_header == "有害垃圾":
-                        app.quantity_harmful += 1
-                    elif app.last_frame_header == "可回收垃圾":
-                        app.quantity_recyclable += 1
-                    elif app.last_frame_header == "厨余垃圾":
-                        app.quantity_kitchen += 1
-                    elif app.last_frame_header == "其他垃圾":
-                        app.quantity_other += 1
-
-                    if app.last_frame_header_double == "有害垃圾":
-                        app.quantity_harmful += 1
-                    elif app.last_frame_header_double == "可回收垃圾":
-                        app.quantity_recyclable += 1
-                    elif app.last_frame_header_double == "厨余垃圾":
-                        app.quantity_kitchen += 1
-                    elif app.last_frame_header_double == "其他垃圾":
-                        app.quantity_other += 1
-                else:
-                    app.index += 1
-                    app.name = frame_header
-                    app.state = "classifying"
-                    app.last_frame_header = frame_header
-                    app.name_double = ""
-                    app.quantity_double = ""
-                    app.last_frame_header = ""
-                    app.index_double = ""
-                    app.state_double = ""
-                app.update_display()
-
-                # # 处理不同帧头的操作
-                # if frame_header == "garbage":
-                #     app.init_parameter()
-                #     quantities = re.findall(r'i(\d+)\+q(\d+)', data)
-                #     for index, quantity in quantities:
-                #         print(f"Index: {index}, Quantity: {quantity}")
-                #         app.index += str(index) + ","  # 将 index 转换为字符串并加上逗号
-                #         app.name += app.names[int(index)] + ","
-                #         app.quantity += str(quantity) + ","
-                #         app.success = "OK"
-                #     app.index = app.index[:-1]  # 移除最后的逗号
-                #     print(app.index)
-                #     app.name = app.name[:-1]
-                #     app.quantity = app.quantity[:-1]
-                #     app.update_display()
-                # elif frame_header == "harmful":
-                #     app.index += 1
-                # elif frame_header == "full":
-                #     app.full_display()
-                # else:
-                #     print(f"未知的帧头: {frame_header}")
-
-
-        except Exception:
-            pass  # 如果队列为空，继续
+        # try:
+        #
+        #
+        # except Exception:
+        #     pass  # 如果队列为空，继续
 
         root.after(100, check_queue)  # 每100毫秒再次检查队列
 
