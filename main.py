@@ -985,7 +985,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
                         ret, frame = cap.read()
                         large_cls_, large_confs, _, large_angles, large_centers, large_image, large_areas, large_width = model_large(
                             frame,
-                            conf_threshold=0.5,
+                            conf_threshold=0.7,
                             iou_threshold=0.5)
                         print("large", large_cls_, large_confs, large_angles, large_centers, large_areas)
                         if len(large_cls_) > 0:
@@ -1203,6 +1203,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
                             command_display += '其他垃圾=!'
                     # 未成功识别，可采取震动措施
                     else:
+                        time.sleep(4)
                         command += f'q4!'
                         command_display += '其他垃圾=!'
                 #双垃圾
@@ -1482,8 +1483,8 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser,queue_main_ser
                         if '!' in buffer:
                             messages = buffer.split('!')  # 根据标识符分割消息
                             # for message in messages:
-                            if messages[0]:  # 确保消息不为空
-                                message = messages[0]
+                            if messages[-1]:  # 确保消息不为空
+                                message = messages[-1]
                                 data_to_send = ""
                                 print(f"接收到的数据: {message}")
                                 if message == "detect":  # 替换为实际的条件
