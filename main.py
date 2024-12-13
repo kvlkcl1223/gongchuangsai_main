@@ -290,6 +290,7 @@ class YOLOv8Seg:
 
                 # Mix image
                 im0 = cv2.addWeighted(im_canvas, 0.3, im0, 0.7, 0)
+                cv2.imwrite(f"{time.time()}.jpg",im0)
                 cls_ = np.array(x[valid_indices, 5], dtype=int).tolist()
 
                 return cls_, x[valid_indices, 4], masks[valid_indices], angles, centers, im0, areas[valid_indices], width

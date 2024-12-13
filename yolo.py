@@ -325,6 +325,29 @@ def extract_region(image, points, output_size=(640, 640)):
     extracted_region = cv2.warpPerspective(image, M, output_size)
 
     return extracted_region
+
+def process_image(image)
+
+    # 步骤 1: 非局部均值滤波去噪
+    denoised = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
+
+    # 步骤 2: 提升饱和度
+    hsv_image = cv2.cvtColor(denoised, cv2.COLOR_BGR2HSV)
+    h, s, v = cv2.split(hsv_image)
+    s = cv2.add(s, 50)  # 增加饱和度
+    enhanced_hsv = cv2.merge((h, s, v))
+    enhanced_image = cv2.cvtColor(enhanced_hsv, cv2.COLOR_HSV2BGR)
+
+    # 步骤 3: 使用 CLAHE 增强对比度
+    lab_image = cv2.cvtColor(enhanced_image, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(lab_image)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    enhanced_l = clahe.apply(l)
+    enhanced_lab = cv2.merge((enhanced_l, a, b))
+    final_image = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2BGR)
+
+    return final_image
+
 cap = cv2.VideoCapture(0,cv2.CAP_V4L2)
 # cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
 fourcc = cv2.VideoWriter_fourcc(*'MJPG')
@@ -334,7 +357,9 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 960)
 while True:
     ret, frame = cap.read()
     image = extract_region(frame, points = [(340,28),(950,20),(970,506),(340,520)])
+    final = process_image(image)
     image = cv2.resize(image, dsize=(640, 640))
     cv2.imshow('frame', frame)
     cv2.imshow('image', image)
+    cv2.imshow('final', final)
     cv2.waitKey(1)
