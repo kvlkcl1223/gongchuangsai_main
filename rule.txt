@@ -2,3 +2,14 @@ SUBSYSTEM=="gpio", PROGRAM="/bin/sh -c '\
     chown -R root:gpio /dev/gpiochip* && chmod -R 770 /dev/gpiochip*'"
 SUBSYSTEM=="gpio*", PROGRAM="/bin/sh -c '\
     chown -R root:gpio /sys/class/gpio && chmod -R 770 /sys/class/gpio'"
+
+
+sudo nano /etc/udev/rules.d/99-gpio.rules
+
+
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+
+
+sudo groupadd gpio
+sudo usermod -aG gpio $USER
