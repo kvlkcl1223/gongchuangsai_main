@@ -12,7 +12,7 @@ import re
 import onnxruntime as ort
 import numpy as np
 import math
-import Jetson.GPIO as GPIO
+# import Jetson.GPIO as GPIO
 
 def extract_region(image, points= [(395,0),(885,0),(895,486),(405,500)], output_size=(640, 640)):
     """
@@ -601,6 +601,7 @@ def display_process(queue_display,queue_display_ser):
     # 定期检查队列消息
     # 逻辑是 接收到垃圾种类存到last_frame_header再次收到success则把这个种类的垃圾加1
     def check_queue():
+
         try:
             # 来自main的命令
             message = queue_display.get_nowait()  # 尝试获取消息
@@ -657,50 +658,7 @@ def display_process(queue_display,queue_display_ser):
                     # 调用更新显示的函数
                 app.update_display()
 
-                # 来自串口的命令
-                # 满载以及动作完成直接由串口发送
-                # 来自main的命令
-                message_ser = queue_display_ser.get_nowait()  # 尝试获取消息
-                print("来自串口", message_ser)
-                # app.update_label(message)  # 更新标签
-                app.flag_start = 0
-                app.video_label.destroy()
-                header_match = re.match(r'^(.*?)=(.*?)!$', message_ser)
-                if header_match:
-                    frame_header = header_match.group(1).strip()
-                    data = header_match.group(2).strip()
-                    if frame_header == "full":
-                        app.full_display()
-                    elif frame_header == "success":
-                        app.state = "OK!"
-                        if app.last_frame_header == "有害垃圾":
-                            app.quantity_harmful += 1
-                        elif app.last_frame_header == "可回收垃圾":
-                            app.quantity_recyclable += 1
-                        elif app.last_frame_header == "厨余垃圾":
-                            app.quantity_kitchen += 1
-                        elif app.last_frame_header == "其他垃圾":
-                            app.quantity_other += 1
 
-                        if app.last_frame_header_double == "有害垃圾":
-                            app.quantity_harmful += 1
-                        elif app.last_frame_header_double == "可回收垃圾":
-                            app.quantity_recyclable += 1
-                        elif app.last_frame_header_double == "厨余垃圾":
-                            app.quantity_kitchen += 1
-                        elif app.last_frame_header_double == "其他垃圾":
-                            app.quantity_other += 1
-                    else:
-                        app.index += 1
-                        app.name = frame_header
-                        app.state = "classifying"
-                        app.last_frame_header = frame_header
-                        app.name_double = ""
-                        app.quantity_double = ""
-                        app.last_frame_header = ""
-                        app.index_double = ""
-                        app.state_double = ""
-                    app.update_display()
 
                     # # 处理不同帧头的操作
                     # if frame_header == "garbage":
@@ -728,12 +686,53 @@ def display_process(queue_display,queue_display_ser):
         except Exception as e:
             pass
 
+        try:
+            # 来自串口的命令
+            # 满载以及动作完成直接由串口发送
+            # 来自main的命令
+            message_ser = queue_display_ser.get_nowait()  # 尝试获取消息
+            print("来自串口", message_ser)
+            # app.update_label(message)  # 更新标签
+            app.flag_start = 0
+            app.video_label.destroy()
+            header_match = re.match(r'^(.*?)=(.*?)!$', message_ser)
+            if header_match:
+                frame_header = header_match.group(1).strip()
+                data = header_match.group(2).strip()
+                if frame_header == "full":
+                    app.full_display()
+                elif frame_header == "success":
+                    app.state = "OK!"
+                    if app.last_frame_header == "有害垃圾":
+                        app.quantity_harmful += 1
+                    elif app.last_frame_header == "可回收垃圾":
+                        app.quantity_recyclable += 1
+                    elif app.last_frame_header == "厨余垃圾":
+                        app.quantity_kitchen += 1
+                    elif app.last_frame_header == "其他垃圾":
+                        app.quantity_other += 1
 
-        # try:
-        #
-        #
-        # except Exception:
-        #     pass  # 如果队列为空，继续
+                    if app.last_frame_header_double == "有害垃圾":
+                        app.quantity_harmful += 1
+                    elif app.last_frame_header_double == "可回收垃圾":
+                        app.quantity_recyclable += 1
+                    elif app.last_frame_header_double == "厨余垃圾":
+                        app.quantity_kitchen += 1
+                    elif app.last_frame_header_double == "其他垃圾":
+                        app.quantity_other += 1
+                else:
+                    app.index += 1
+                    app.name = frame_header
+                    app.state = "classifying"
+                    app.last_frame_header = frame_header
+                    app.name_double = ""
+                    app.quantity_double = ""
+                    app.last_frame_header = ""
+                    app.index_double = ""
+                    app.state_double = ""
+                app.update_display()
+        except Exception:
+            pass  # 如果队列为空，继续
 
         root.after(100, check_queue)  # 每100毫秒再次检查队列
 
@@ -1387,31 +1386,32 @@ def open_serial_command(port):
             time.sleep(0.1)
 
 
-def is_gpio_low(pin):
-    """
-    检查指定 GPIO 引脚是否为低电平。
-
-    参数:
-    - pin: GPIO 引脚号 (根据 BCM 编号)
-
-    返回:
-    - True: 如果引脚是低电平
-    - False: 如果引脚是高电平
-    """
-    GPIO.setmode(GPIO.BOARD)  # 使用 BCM 引脚编号
-    GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    time.sleep(1)
-    state = GPIO.input(pin)  # 读取引脚状态
-    GPIO.cleanup(pin)  # 清理引脚以释放资源
-
-    return state == GPIO.LOW  # 返回是否为低电平
+# def is_gpio_low(pin):
+#     """
+#     检查指定 GPIO 引脚是否为低电平。
+#
+#     参数:
+#     - pin: GPIO 引脚号 (根据 BCM 编号)
+#
+#     返回:
+#     - True: 如果引脚是低电平
+#     - False: 如果引脚是高电平
+#     """
+#     GPIO.setmode(GPIO.BOARD)  # 使用 BCM 引脚编号
+#     GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+#     time.sleep(1)
+#     state = GPIO.input(pin)  # 读取引脚状态
+#     GPIO.cleanup(pin)  # 清理引脚以释放资源
+#
+#     return state == GPIO.LOW  # 返回是否为低电平
 
 def serial_process(queue_receive,queue_transmit,queue_display_ser):
     #握手多次发送
 
-    # while True:
-    #     time.sleep(5)
-    #     queue_receive.put("detect")
+    while True:
+        time.sleep(3)
+        queue_display_ser.put("有害垃圾=!")
+        print("a")
     # 创建串口对象
     port = '/dev/ttyTHS1'  # 替换为你的串口号
     baudrate = 115200
@@ -1503,16 +1503,20 @@ def serial_process(queue_receive,queue_transmit,queue_display_ser):
                                     print(f"command接收到的数据: {message}")
                                     if message == "com=q1":  # 替换为实际的条件
                                         data_to_send = "Tar=q1!"
-                                        queue_display_ser.put('可回收垃圾=!')
+                                        queue_display_ser.put("可回收垃圾=!")
+                                        print(data_to_send,"可回收垃圾")
                                     elif message == "com=q2":  # 替换为实际的条件
                                         data_to_send = "Tar=q2!"
-                                        queue_display_ser.put('有害垃圾=!')
+                                        queue_display_ser.put("有害垃圾=!")
+                                        print(data_to_send, "有害垃圾")
                                     elif message == "com=q3":  # 替换为实际的条件
                                         data_to_send = "Tar=q3!"
-                                        queue_display_ser.put('厨余垃圾=!')
+                                        queue_display_ser.put("厨余垃圾=!")
+                                        print(data_to_send, "厨余垃圾")
                                     elif message == "com=q4":  # 替换为实际的条件
                                         data_to_send = "Tar=q4!"
-                                        queue_display_ser.put('其他垃圾=!')
+                                        queue_display_ser.put("其他垃圾=!")
+                                        print(data_to_send, "其他垃圾")
                                     uart_transition(data_to_send.encode('ascii'),ser)
                             buffer = ""  # 清空缓冲区
                     except UnicodeDecodeError:
