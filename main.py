@@ -890,6 +890,7 @@ def open_camera(try_from: int = 0, try_to: int = 10):
     for i in range(try_from, try_to):
         cam.open(i, cv2.CAP_V4L2)
         if cam.isOpened():
+            print("摄像头一打开")
             return cam, i
     raise Exception("Camera not found")
 
@@ -917,7 +918,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
     # 等待画面刷新时间
-    time_update = 0.25
+    time_update = 0.20
     # 角度偏差量
     angle_error = 0
     # 垃圾轮数计数
