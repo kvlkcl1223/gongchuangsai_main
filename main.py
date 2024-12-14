@@ -192,6 +192,7 @@ class YOLOv8Seg:
         )
         # cv2.imshow('im0', image)
         # cv2.waitKey(1)
+        cv2.imwrite(f"{time.time()}.jpg", image)
         return cls_, confs, masks, angles, centers, image, areas, width  # 类别 置信度 掩码 角度 中心 图像 面积比例 宽度
 
     def preprocess(self, img):
@@ -328,7 +329,7 @@ class YOLOv8Seg:
 
                 # Mix image
                 im0 = cv2.addWeighted(im_canvas, 0.3, im0, 0.7, 0)
-                cv2.imwrite(f"{time.time()}.jpg",im0)
+
                 cls_ = np.array(x[valid_indices, 5], dtype=int).tolist()
 
                 return cls_, x[valid_indices, 4], masks[valid_indices], angles, centers, im0, areas[valid_indices], width
