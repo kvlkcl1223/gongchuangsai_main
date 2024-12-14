@@ -917,6 +917,10 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
     cap.set(cv2.CAP_PROP_FOURCC, fourcc)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+    while True:
+        ret, frame =cap.read()
+        cv2.imshow("frame",frame)
+        cv2.waitKey(1)
     # 等待画面刷新时间
     time_update = 0.20
     # 角度偏差量
