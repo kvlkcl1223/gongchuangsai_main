@@ -910,7 +910,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
 
     model_path = "train_17.onnx"
     model = YOLOv8Seg(model_path)
-    model_large_path = "train_17.onnx"
+    model_large_path = "train_33.onnx"
     model_large = YOLOv8Seg(model_large_path)
     cap, i = open_camera()
     # cap = cv2.VideoCapture(0)
