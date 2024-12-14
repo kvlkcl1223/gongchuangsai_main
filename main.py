@@ -89,10 +89,13 @@ def extract_region(image, points=  [(340,28),(950,20),(970,506),(340,520)], outp
 
 def read_kernel(image):
     # 定义卷积核（用于锐化）
-    kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])  # 锐化滤波核
+    # 定义锐化卷积核
+    sharpening_kernel = np.array([[-1, -1, -1],
+                                  [-1, 9, -1],
+                                  [-1, -1, -1]])
 
     # 对每个颜色通道进行锐化
-    sharpened = cv2.filter2D(image, -1, kernel)
+    sharpened = cv2.filter2D(image, -1, sharpening_kernel)
 
     return sharpened
 
@@ -892,9 +895,9 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
     #     # time.sleep(3)
     #     # queue.put('garbage=i2+q2+i3+q19+i1+q7!')
 
-    model_path = "train_17.onnx"
+    model_path = "train_19.onnx"
     model = YOLOv8Seg(model_path)
-    model_large_path = "train_17.onnx"
+    model_large_path = "train_19.onnx"
     model_large = YOLOv8Seg(model_large_path)
     cap, i = open_camera()
     # cap = cv2.VideoCapture(0)
