@@ -58,7 +58,7 @@ def process_image(image):
     return final_image
 
 
-def extract_region(image, points= [(580,0),(1410,0),(1410,660),(580,655)], output_size=(640, 640)):
+def extract_region(image, points= [(580,0),(1410,0),(1410,630),(580,630)], output_size=(640, 640)):
     """
     从给定的图像中提取四边形区域，并将其调整为指定的输出大小。
 
@@ -135,7 +135,7 @@ class YOLOv8Seg:
             5: (0.01, 0.6),
             6: (0.01, 0.7),
             7: (0.001, 0.5),
-            8: (0.01, 0.8),
+            8: (0.02, 0.8),
             9: (0.01, 0.8),
 
         }
