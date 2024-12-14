@@ -334,7 +334,7 @@ def process_image(image):
     # 步骤 2: 提升饱和度
     hsv_image = cv2.cvtColor(denoised, cv2.COLOR_BGR2HSV)
     h, s, v = cv2.split(hsv_image)
-    s = cv2.add(s, 50)  # 增加饱和度
+    s = cv2.add(s, 20)  # 增加饱和度
     enhanced_hsv = cv2.merge((h, s, v))
     enhanced_image = cv2.cvtColor(enhanced_hsv, cv2.COLOR_HSV2BGR)
 
