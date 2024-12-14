@@ -267,7 +267,7 @@ class YOLOv8Seg:
             # Compute mask areas and filter
             areas = np.sum(masks, axis=(1, 2))  # Calculate areas (number of True values per mask)
             # 标准化面积为占总图片面积的比例
-            area_image = 640 * 640
+            area_image = im0.shape[1]*im0.shape[0]
             areas = areas / area_image
             areas = np.round(areas, 5)
             print("面积比例", areas)
