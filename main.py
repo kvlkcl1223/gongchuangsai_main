@@ -58,7 +58,7 @@ def process_image(image):
     return final_image
 
 
-def extract_region(image, points=  [(340,28),(950,20),(970,506),(340,520)], output_size=(640, 640)):
+def extract_region(image, points= [(580,0),(1410,0),(1410,590),(580,580)], output_size=(640, 640)):
     """
     从给定的图像中提取四边形区域，并将其调整为指定的输出大小。
 
@@ -903,8 +903,8 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
     # cap = cv2.VideoCapture(0)
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     cap.set(cv2.CAP_PROP_FOURCC, fourcc)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 960)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
     # 等待画面刷新时间
     time_update = 0.2
     # 角度偏差量
