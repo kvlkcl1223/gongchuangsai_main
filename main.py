@@ -58,7 +58,7 @@ def process_image(image):
     return final_image
 
 
-def extract_region(image, points= [(580,0),(1410,0),(1410,590),(580,580)], output_size=(640, 640)):
+def extract_region(image, points= [(580,0),(1410,0),(1410,630),(580,620)], output_size=(640, 640)):
     """
     从给定的图像中提取四边形区域，并将其调整为指定的输出大小。
 
