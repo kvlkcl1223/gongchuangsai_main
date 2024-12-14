@@ -918,7 +918,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
     # 等待画面刷新时间
-    time_update = 0.10
+    time_update = 0.20
     # 角度偏差量
     angle_error = 0
     # 垃圾轮数计数
@@ -927,6 +927,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
     start_time = time.time()
     while time.time() - start_time < 0.2:
         ret, frame = cap.read()
+        time.sleep(0.01)
         cls_, confs, _, angles, centers, image, areas, width = model(frame, conf_threshold=0.7, iou_threshold=0.5)
         cls_, confs, _, angles, centers, image, areas, width = model_large(frame, conf_threshold=0.7, iou_threshold=0.5)
     queue_display.put("OK=!")
@@ -980,6 +981,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
                         start_time = time.time()
                         while time.time() - start_time < time_update:
                             ret, frame = cap.read()
+                            time.sleep(0.01)
                         ret, frame = cap.read()
                         start_time = time.time()
                         cls_, confs, _, angles, centers, image, areas, width = model(frame, conf_threshold=conf_threshold, iou_threshold=0.5)
@@ -991,6 +993,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
                             start_time = time.time()
                             while time.time()-start_time < time_update:
                                 ret, frame = cap.read()
+                                time.sleep(0.01)
                             ret, frame = cap.read()
                             new_cls_, new_confs, _, new_angles, new_centers, new_image, new_areas, new_width = model(frame, conf_threshold=conf_threshold,
                                                                            iou_threshold=0.5)
@@ -1010,6 +1013,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
                                 start_time = time.time()
                                 while time.time() - start_time < time_update:
                                     ret, frame = cap.read()
+                                    time.sleep(0.01)
                                 ret, frame = cap.read()
                                 large_cls_, large_confs, _, large_angles, large_centers, large_image, large_areas, large_width = model_large(frame,
                                                                                                           conf_threshold=conf_threshold,
@@ -1045,6 +1049,7 @@ def yolo_process(queue_display,queue_receive, queue_transmit,queue_main_ser):
                         start_time = time.time()
                         while time.time() - start_time < time_update:
                             ret, frame = cap.read()
+                            time.sleep(0.01)
                         ret, frame = cap.read()
                         large_cls_, large_confs, _, large_angles, large_centers, large_image, large_areas, large_width = model_large(
                             frame,
